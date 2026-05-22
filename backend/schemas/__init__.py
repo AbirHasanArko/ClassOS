@@ -1,0 +1,3 @@
+"""
+ClassOS Schemas Package
+"""

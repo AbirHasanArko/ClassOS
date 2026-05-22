@@ -1,0 +1,3 @@
+"""
+ClassOS Camera Service Package
+"""

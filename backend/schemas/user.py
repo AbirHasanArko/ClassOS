@@ -1,0 +1,22 @@
+from typing import Optional
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict, EmailStr
+from models.user import UserRole
+
+class UserBase(BaseModel):
+    email: EmailStr
+    role: UserRole
+
+class UserCreate(UserBase):
+    password: str
+    first_name: str
+    last_name: str
+    student_id: Optional[str] = None
+    employee_id: Optional[str] = None
+    department: Optional[str] = None
+
+class UserOut(UserBase):
+    id: UUID
+    is_active: bool
+    
+    model_config = ConfigDict(from_attributes=True)

@@ -1,0 +1,3 @@
+"""
+ClassOS Backend Auth Package
+"""

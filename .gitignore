@@ -1,0 +1,77 @@
+# ============================================================
+# ClassOS .gitignore
+# ============================================================
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# ----- Virtual Environment -----
+venv/
+.venv/
+env/
+ENV/
+
+# ----- Environment Variables -----
+.env
+.env.local
+.env.*.local
+
+# ----- IDE -----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ----- Node.js -----
+node_modules/
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----- Data & Models -----
+data/
+models/*.pt
+models/*.dat
+models/*.pkl
+!models/.gitkeep
+
+# ----- Docker -----
+docker/volumes/
+
+# ----- OS -----
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ----- Logs -----
+*.log
+logs/
+
+# ----- Database -----
+*.db
+*.sqlite3
+
+# ----- Coverage & Testing -----
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# ----- Misc -----
+*.bak
+*.tmp
+*.temp

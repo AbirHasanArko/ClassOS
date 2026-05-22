@@ -1,0 +1,3 @@
+"""
+ClassOS Attendance Engine Package
+"""
