@@ -7,7 +7,7 @@ authentication, and role-based access control.
 from typing import AsyncGenerator, List
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizor, HTTPBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.connection import async_session_factory

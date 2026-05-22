@@ -1,0 +1,4 @@
+# This directory stores AI model weights.
+# Files here are .gitignored and downloaded during setup.
+# Required models:
+#   - yolov8n.pt (YOLOv8 Nano for head counting)

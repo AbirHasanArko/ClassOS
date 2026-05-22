@@ -1,0 +1,100 @@
+# =============================================================
+# ClassOS — Docker Compose
+# Orchestrates all services: backend, frontend, db, nginx
+# =============================================================
+
+version: "3.9"
+
+services:
+  # ----- PostgreSQL Database -----
+  db:
+    image: postgres:16-alpine
+    container_name: classos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-classos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-classos_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-classos_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-classos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - classos-net
+
+  # ----- FastAPI Backend -----
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: classos-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-classos}:${POSTGRES_PASSWORD:-classos_secret}@db:5432/${POSTGRES_DB:-classos_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-to-a-random-jwt-secret}
+      SECRET_KEY: ${SECRET_KEY:-change-me-to-a-random-64-char-string}
+      APP_ENV: ${APP_ENV:-production}
+      DEBUG: ${DEBUG:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      CAMERA_MOCK_MODE: ${CAMERA_MOCK_MODE:-true}
+      FINGERPRINT_MOCK_MODE: ${FINGERPRINT_MOCK_MODE:-true}
+    volumes:
+      - face_data:/app/data/faces
+      - model_data:/app/models
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # On Raspberry Pi, uncomment these for hardware access:
+    # devices:
+    #   - /dev/video0:/dev/video0       # Camera
+    #   - /dev/ttyS0:/dev/ttyS0         # R307 UART
+    # privileged: true
+    networks:
+      - classos-net
+
+  # ----- React Frontend -----
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: classos-frontend
+    restart: unless-stopped
+    networks:
+      - classos-net
+
+  # ----- Nginx Reverse Proxy -----
+  nginx:
+    image: nginx:alpine
+    container_name: classos-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Uncomment for HTTPS:
+      # - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - classos-net
+
+volumes:
+  pgdata:
+    driver: local
+  face_data:
+    driver: local
+  model_data:
+    driver: local
+
+networks:
+  classos-net:
+    driver: bridge
