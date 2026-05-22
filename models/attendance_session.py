@@ -4,6 +4,7 @@ Represents a specific occurrence of a class (e.g., today's CS101 lecture).
 """
 
 import enum
+import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer

@@ -3,6 +3,8 @@ ClassOS — Fingerprint Data Model
 Stores hardware mapping for R307 sensor templates.
 """
 
+import uuid
+
 from sqlalchemy import Boolean, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship

@@ -3,6 +3,8 @@ ClassOS — Admin Model
 Stores administrator profile information.
 """
 
+import uuid
+
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship

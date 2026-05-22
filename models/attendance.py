@@ -4,6 +4,7 @@ Stores individual student attendance records within a session.
 """
 
 import enum
+import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, UniqueConstraint
