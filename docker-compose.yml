@@ -45,7 +45,6 @@ services:
       FINGERPRINT_MOCK_MODE: ${FINGERPRINT_MOCK_MODE:-true}
     volumes:
       - face_data:/app/data/faces
-      - model_data:/app/models
     ports:
       - "8000:8000"
     depends_on:
@@ -91,8 +90,6 @@ volumes:
   pgdata:
     driver: local
   face_data:
-    driver: local
-  model_data:
     driver: local
 
 networks:
