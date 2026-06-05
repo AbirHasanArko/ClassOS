@@ -77,8 +77,20 @@ if [ ! -f "models/yolov8n.pt" ]; then
     echo "YOLOv8n downloaded."
 fi
 
-# 7. Build and Start Services
-echo "[7/7] Building and starting Docker services..."
+# 7. Enable Hardware Access in Docker Compose
+echo "[7/8] Enabling USB Webcam and UART in docker-compose.yml..."
+if grep -q "# devices:" docker-compose.yml; then
+    sed -i 's/# devices:/devices:/' docker-compose.yml
+    sed -i 's/#   - \/dev\/video0:\/dev\/video0/  - \/dev\/video0:\/dev\/video0/' docker-compose.yml
+    sed -i 's/#   - \/dev\/ttyS0:\/dev\/ttyS0/  - \/dev\/ttyS0:\/dev\/ttyS0/' docker-compose.yml
+    sed -i 's/# privileged: true/privileged: true/' docker-compose.yml
+    echo "Hardware access enabled."
+else
+    echo "Hardware access already enabled."
+fi
+
+# 8. Build and Start Services
+echo "[8/8] Building and starting Docker services..."
 docker compose up -d --build
 
 echo ""
