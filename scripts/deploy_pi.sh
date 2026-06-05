@@ -90,8 +90,14 @@ else
 fi
 
 # 8. Build and Start Services
-echo "[8/8] Building and starting Docker services..."
+echo "[8/9] Building and starting Docker services..."
 docker compose up -d --build
+
+# 9. Seed the Database
+echo "[9/9] Seeding the database..."
+echo "Waiting 10 seconds for database to initialize..."
+sleep 10
+docker compose exec -T backend python -m scripts.seed_db
 
 echo ""
 echo "========================================="
