@@ -10,15 +10,17 @@ export const getFaceStatus = async (studentId) => {
 };
 
 /**
- * Upload face images to register a student's face.
+ * Upload face images (or webcam blobs) to register a student's face.
  * @param {string} studentId - UUID of the student
- * @param {FileList|File[]} files - One or more image files
+ * @param {Array<File|Blob>} files - One or more image files or webcam blobs
  */
 export const uploadFaceImages = async (studentId, files) => {
   const formData = new FormData();
-  for (const file of files) {
-    formData.append('files', file);
-  }
+  files.forEach((file, i) => {
+    // File objects already carry a filename; Blobs need one supplied
+    const filename = file instanceof File ? file.name : `webcam_capture_${i + 1}.jpg`;
+    formData.append('files', file, filename);
+  });
 
   const response = await client.post(`/students/${studentId}/face`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
