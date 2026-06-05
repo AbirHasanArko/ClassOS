@@ -4,8 +4,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { getCourses } from '../api/courses';
-import { startSession, endSession, triggerFingerprintScan } from '../api/attendance';
-import { Camera, StopCircle, Fingerprint, Users, UserCheck, AlertTriangle } from 'lucide-react';
+import { startSession, endSession, triggerFingerprintScan, getSessionRoster, markAttendanceManual } from '../api/attendance';
+import { Camera, StopCircle, Fingerprint, Users, UserCheck, AlertTriangle, List, Clock } from 'lucide-react';
 
 export const AttendancePage = () => {
   const [courses, setCourses] = useState([]);
@@ -16,6 +16,8 @@ export const AttendancePage = () => {
   const [recognizedCount, setRecognizedCount] = useState(0);
   const [fingerprintNeeded, setFingerprintNeeded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('log'); // 'log' or 'roster'
+  const [roster, setRoster] = useState([]);
 
   const { messages, connect, disconnect, isConnected } = useWebSocket();
 
@@ -49,6 +51,8 @@ export const AttendancePage = () => {
           }];
         });
         setRecognizedCount((c) => c + 1);
+        // Refresh roster
+        if (activeSession) fetchRoster(activeSession.id);
         break;
       case 'head_count_mismatch':
         setHeadCount(latest.data.head_count);
@@ -63,6 +67,15 @@ export const AttendancePage = () => {
     }
   }, [messages]);
 
+  const fetchRoster = async (sessionId) => {
+    try {
+      const data = await getSessionRoster(sessionId);
+      setRoster(data);
+    } catch (err) {
+      console.error('Failed to fetch roster', err);
+    }
+  };
+
   const handleStartSession = async () => {
     if (!selectedCourse) return;
     setLoading(true);
@@ -72,6 +85,8 @@ export const AttendancePage = () => {
       setAttendanceList([]);
       setHeadCount(0);
       setRecognizedCount(0);
+      setRoster([]);
+      await fetchRoster(session.id);
       connect(session.id);
     } catch (err) {
       console.error('Failed to start session', err);
@@ -100,6 +115,16 @@ export const AttendancePage = () => {
       }
     } catch (err) {
       console.error('Fingerprint scan failed', err);
+    }
+  };
+
+  const handleManualOverride = async (studentId, status) => {
+    if (!activeSession) return;
+    try {
+      await markAttendanceManual(activeSession.id, studentId, status);
+      await fetchRoster(activeSession.id);
+    } catch (err) {
+      console.error('Failed to override status', err);
     }
   };
 
@@ -208,51 +233,123 @@ export const AttendancePage = () => {
           </CardContent>
         </Card>
 
-        {/* Attendance List Panel */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Attendance Log</CardTitle>
+        {/* Attendance Panel */}
+        <Card className="flex flex-col h-full max-h-[600px]">
+          <CardHeader className="pb-0 border-b border-border/50">
+            <div className="flex justify-between items-center mb-2">
+              <CardTitle className="text-lg">Attendance</CardTitle>
+              <div className="flex gap-1 bg-muted/50 p-1 rounded-md">
+                <button
+                  onClick={() => setActiveTab('log')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-sm flex items-center gap-1 transition-colors ${activeTab === 'log' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Clock size={14} /> Live Log
+                </button>
+                <button
+                  onClick={() => setActiveTab('roster')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-sm flex items-center gap-1 transition-colors ${activeTab === 'roster' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <List size={14} /> Sheet
+                </button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="max-h-[500px] overflow-y-auto">
-            {attendanceList.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No attendance recorded yet.
-              </p>
+          <CardContent className="flex-1 overflow-y-auto p-4">
+            {activeTab === 'log' ? (
+              <div className="space-y-4">
+                {attendanceList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No attendance recorded yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {attendanceList.map((entry, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <div>
+                          <p className="text-sm font-medium">{entry.student_id.slice(0, 8)}...</p>
+                          <p className="text-xs text-muted-foreground">{entry.time}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={entry.method === 'face' ? 'success' : 'warning'}>
+                            {entry.method.toUpperCase()}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {(entry.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Fingerprint Prompt */}
+                {fingerprintNeeded && (
+                  <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <div className="flex items-center gap-2 text-orange-500 mb-2">
+                      <Fingerprint size={20} />
+                      <span className="font-medium text-sm">Fingerprint Verification Needed</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      A face was detected with low confidence. Please ask the student to place their finger on the sensor.
+                    </p>
+                    <Button size="sm" onClick={handleFingerprintScan}>
+                      <Fingerprint className="mr-1 h-3 w-3" />
+                      Scan Fingerprint
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-2">
-                {attendanceList.map((entry, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
-                    <div>
-                      <p className="text-sm font-medium">{entry.student_id.slice(0, 8)}...</p>
-                      <p className="text-xs text-muted-foreground">{entry.time}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={entry.method === 'face' ? 'success' : 'warning'}>
-                        {entry.method.toUpperCase()}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {(entry.confidence * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Fingerprint Prompt */}
-            {fingerprintNeeded && (
-              <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                <div className="flex items-center gap-2 text-orange-500 mb-2">
-                  <Fingerprint size={20} />
-                  <span className="font-medium text-sm">Fingerprint Verification Needed</span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  A face was detected with low confidence. Please ask the student to place their finger on the sensor.
-                </p>
-                <Button size="sm" onClick={handleFingerprintScan}>
-                  <Fingerprint className="mr-1 h-3 w-3" />
-                  Scan Fingerprint
-                </Button>
+                {!activeSession ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Start a session to view the attendance sheet.
+                  </p>
+                ) : roster.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No students enrolled in this course.
+                  </p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left py-2 px-2 font-medium">Student</th>
+                        <th className="text-center py-2 px-2 font-medium">Status</th>
+                        <th className="text-right py-2 px-2 font-medium">Override</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {roster.map((student) => (
+                        <tr key={student.student_uuid} className="border-b hover:bg-muted/30">
+                          <td className="py-2 px-2">
+                            <p className="font-medium">{student.first_name} {student.last_name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{student.student_id}</p>
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <Badge variant={
+                              student.status === 'present' ? 'success' :
+                              student.status === 'absent' ? 'destructive' : 'warning'
+                            }>
+                              {student.status.toUpperCase()}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-2 text-right">
+                            <select
+                              className="text-xs rounded border border-input bg-background px-1 py-1"
+                              value={student.status}
+                              onChange={(e) => handleManualOverride(student.student_uuid, e.target.value)}
+                            >
+                              <option value="absent">Absent</option>
+                              <option value="present">Present</option>
+                              <option value="late">Late</option>
+                              <option value="excused">Excused</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             )}
           </CardContent>

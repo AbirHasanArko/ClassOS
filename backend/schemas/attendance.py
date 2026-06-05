@@ -42,3 +42,15 @@ class AttendanceUpdate(BaseModel):
 class MarkAttendanceManual(BaseModel):
     student_id: UUID
     status: AttendanceStatus
+
+class AttendanceRosterItemOut(BaseModel):
+    student_uuid: UUID
+    student_id: str
+    first_name: str
+    last_name: str
+    status: AttendanceStatus
+    method: AttendanceMethod
+    confidence: Optional[float] = None
+    marked_at: Optional[datetime] = None
+    
+    model_config = ConfigDict(from_attributes=True)

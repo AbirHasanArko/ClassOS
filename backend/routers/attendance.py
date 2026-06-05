@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.dependencies import get_db, get_current_user, require_role
-from backend.schemas.attendance import SessionCreate, SessionOut, SessionList, AttendanceOut, MarkAttendanceManual
+from backend.schemas.attendance import SessionCreate, SessionOut, SessionList, AttendanceOut, MarkAttendanceManual, AttendanceRosterItemOut
 from models.user import User, UserRole
 from models.attendance_session import AttendanceSession, SessionStatus
 from models.attendance import Attendance, AttendanceStatus, AttendanceMethod
@@ -127,3 +127,36 @@ async def mark_manual_attendance(
         await db.commit()
         
     return record
+
+@router.get("/sessions/{session_id}/roster", response_model=list[AttendanceRosterItemOut])
+async def get_session_roster(
+    session_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    from models.student import Student
+    
+    # Get all attendance records for this session joined with Student
+    stmt = (
+        select(Attendance, Student)
+        .join(Student, Attendance.student_id == Student.id)
+        .where(Attendance.session_id == session_id)
+        .order_by(Student.last_name, Student.first_name)
+    )
+    result = await db.execute(stmt)
+    records = result.all()
+    
+    roster = []
+    for att, student in records:
+        roster.append({
+            "student_uuid": student.id,
+            "student_id": student.student_id,
+            "first_name": student.first_name,
+            "last_name": student.last_name,
+            "status": att.status,
+            "method": att.method,
+            "confidence": att.confidence,
+            "marked_at": att.marked_at
+        })
+        
+    return roster
