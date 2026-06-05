@@ -22,7 +22,9 @@ For each student, you must register their biometrics so the AI can identify them
 **Face Enrollment:**
 1. Locate the student in the **Students** table.
 2. Under the **Face** column, click **Enroll**.
-3. A modal will appear. Select 5-10 clear, front-facing photos of the student and click **Upload**.
+3. A modal will appear with two options:
+   - **Upload Files Tab:** Select 5-10 clear, front-facing photos from your computer and click **Upload**.
+   - **Use Webcam Tab:** Use your device's camera to capture 5-10 live snapshots directly, then click **Upload & Enroll**.
 4. The system will automatically generate 128D facial embeddings and store them in the database.
 
 **Fingerprint Enrollment:**
