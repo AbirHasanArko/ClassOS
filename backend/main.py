@@ -42,10 +42,23 @@ async def lifespan(app: FastAPI):
     # Load AI models (lazy — done in ai_engine on first use)
     print("✅ Application ready")
 
+    # Start the Attendance Engine (background loop: camera → AI → DB)
+    from attendance_engine.engine import engine as attendance_engine
+    await attendance_engine.start()
+    print("✅ Attendance engine started")
+
     yield
 
     # ----- Shutdown -----
     print("🛑 Shutting down ClassOS...")
+
+    # Stop attendance engine and camera
+    from attendance_engine.engine import engine as attendance_engine
+    attendance_engine.is_running = False
+    from camera_service.camera import camera
+    camera.stop()
+    print("✅ Camera and attendance engine stopped")
+
     from database.connection import engine
     await engine.dispose()
     print("✅ Database connections closed")
@@ -79,6 +92,7 @@ def create_app() -> FastAPI:
     from backend.routers.users import router as users_router
     from backend.routers.analytics import router as analytics_router
     from backend.routers.system import router as system_router
+    from backend.routers.face import router as face_router
     from backend.websocket.router import router as ws_router
     from camera_service.stream import router as stream_router
     from fingerprint_service.router import router as fingerprint_router
@@ -93,6 +107,7 @@ def create_app() -> FastAPI:
     app.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
     app.include_router(stream_router, prefix="/api/stream", tags=["Video Stream"])
     app.include_router(fingerprint_router, prefix="/api/fingerprint", tags=["Fingerprint"])
+    app.include_router(face_router, prefix="/api/students", tags=["Face Registration"])
 
     # ----- Health Check -----
     @app.get("/api/health", tags=["Health"])
