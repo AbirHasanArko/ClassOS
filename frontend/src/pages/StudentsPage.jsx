@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { getStudents, createStudent } from '../api/students';
+import { uploadFaceImages } from '../api/face';
+import { enrollFingerprint } from '../api/attendance';
 import { UserPlus, Search, Fingerprint, ScanFace } from 'lucide-react';
 
 export const StudentsPage = () => {
@@ -13,6 +15,12 @@ export const StudentsPage = () => {
   const [newStudent, setNewStudent] = useState({
     student_id: '', first_name: '', last_name: '', email: ''
   });
+
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showFaceUpload, setShowFaceUpload] = useState(false);
+  const [faceFiles, setFaceFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEnrollingFP, setIsEnrollingFP] = useState(false);
 
   const fetchStudents = async () => {
     try {
@@ -37,6 +45,39 @@ export const StudentsPage = () => {
       fetchStudents();
     } catch (err) {
       console.error('Failed to create student', err);
+    }
+  };
+
+  const handleUploadFaces = async (e) => {
+    e.preventDefault();
+    if (!faceFiles || faceFiles.length === 0) return;
+    setIsUploading(true);
+    try {
+      await uploadFaceImages(selectedStudent.id, faceFiles);
+      setShowFaceUpload(false);
+      setFaceFiles([]);
+      fetchStudents();
+    } catch (err) {
+      console.error('Failed to upload faces', err);
+      alert('Failed to upload face images.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleEnrollFingerprint = async (student) => {
+    if (confirm(`Please ask ${student.first_name} to place their finger on the sensor. Click OK to start.`)) {
+      setIsEnrollingFP(true);
+      try {
+        await enrollFingerprint(student.id);
+        alert('Fingerprint enrolled successfully!');
+        fetchStudents();
+      } catch (err) {
+        console.error('Failed to enroll fingerprint', err);
+        alert('Failed to enroll fingerprint. Ensure sensor is connected or mock mode is enabled.');
+      } finally {
+        setIsEnrollingFP(false);
+      }
     }
   };
 
@@ -89,14 +130,18 @@ export const StudentsPage = () => {
                       {student.face_registered ? (
                         <Badge variant="success"><ScanFace className="h-3 w-3 mr-1" />Enrolled</Badge>
                       ) : (
-                        <Badge variant="outline">Not Set</Badge>
+                        <Button variant="outline" size="sm" onClick={() => { setSelectedStudent(student); setShowFaceUpload(true); }}>
+                          <ScanFace className="mr-2 h-4 w-4" /> Enroll
+                        </Button>
                       )}
                     </td>
                     <td className="p-4 text-center">
                       {student.fingerprint_registered ? (
                         <Badge variant="success"><Fingerprint className="h-3 w-3 mr-1" />Enrolled</Badge>
                       ) : (
-                        <Badge variant="outline">Not Set</Badge>
+                        <Button variant="outline" size="sm" disabled={isEnrollingFP} onClick={() => handleEnrollFingerprint(student)}>
+                          <Fingerprint className="mr-2 h-4 w-4" /> Enroll
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -166,6 +211,38 @@ export const StudentsPage = () => {
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" type="button" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit">Create Student</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Upload Face Modal */}
+      {showFaceUpload && selectedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader>
+              <CardTitle>Enroll Face for {selectedStudent.first_name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUploadFaces} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Select at least 1 clear, front-facing image of the student. For best results, select 5-10 images.
+                </p>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Face Images</label>
+                  <input
+                    type="file" multiple accept="image/*" required
+                    className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    onChange={(e) => setFaceFiles(Array.from(e.target.files))}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" type="button" onClick={() => { setShowFaceUpload(false); setFaceFiles([]); }}>Cancel</Button>
+                  <Button type="submit" disabled={isUploading || faceFiles.length === 0}>
+                    {isUploading ? 'Uploading...' : 'Upload & Enroll'}
+                  </Button>
                 </div>
               </form>
             </CardContent>

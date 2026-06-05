@@ -22,3 +22,13 @@ export const triggerFingerprintScan = async () => {
   const response = await client.post('/fingerprint/verify');
   return response.data;
 };
+
+export const enrollFingerprint = async (studentId) => {
+  const response = await client.post('/fingerprint/enroll', { student_id: studentId });
+  return response.data;
+};
+
+export const getSessionRoster = async (sessionId) => {
+  const response = await client.get(`/attendance/sessions/${sessionId}/roster`);
+  return response.data;
+};
