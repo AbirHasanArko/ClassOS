@@ -5,43 +5,33 @@
 | Component | Model | Qty |
 |-----------|-------|-----|
 | Single Board Computer | Raspberry Pi 5 (8GB RAM) | 1 |
-| Camera | Raspberry Pi Camera Module 3 | 1 |
+| Camera | USB Webcam (UVC-compatible, 720p+) | 1 |
 | Fingerprint Sensor | R307 Optical Fingerprint Module | 1 |
 | Jumper Wires | Female-to-Female | 4 |
-| Ribbon Cable | CSI Camera Ribbon (included with camera) | 1 |
 
 ---
 
-## 1. Camera Module 3 Connection
+## 1. USB Webcam Connection
 
-The Pi Camera Module 3 connects via the **CSI (Camera Serial Interface)** ribbon cable.
+Any standard **UVC (USB Video Class)** compatible webcam will work. Most modern USB webcams are UVC-compatible out of the box — no drivers needed on Linux.
 
 ### Steps:
-1. **Power off** the Raspberry Pi
-2. Locate the **CSI camera port** on the Pi 5 (labeled "CAMERA" near the HDMI ports)
-3. Gently lift the plastic clip on the connector
-4. Insert the ribbon cable with the **blue side facing the USB ports** (contacts facing the HDMI port)
-5. Press the clip back down firmly
-6. Verify the cable is seated evenly
+1. **Plug** the USB webcam into any available **USB port** on the Raspberry Pi 5
+2. The webcam will appear as `/dev/video0` (or `/dev/video1` if another video device exists)
+3. No reboot or config changes are required
 
-### Enable Camera in Config:
+> 💡 **Tip**: For best results, use a webcam that supports at least **720p @ 30fps**. Wide-angle lenses are recommended for classroom coverage.
+
+### Test Webcam:
 ```bash
-sudo nano /boot/firmware/config.txt
-```
-Add or verify these lines:
-```
-start_x=1
-camera_auto_detect=1
-```
-Reboot after changes.
+# Verify the device is detected
+ls -la /dev/video*
 
-### Test Camera:
-```bash
-# Test with libcamera (Pi OS)
-libcamera-hello
+# Quick test with v4l2
+v4l2-ctl --list-devices
 
-# Or with Python
-python3 -c "from picamera2 import Picamera2; cam = Picamera2(); cam.start(); print('Camera OK')"
+# Or with Python + OpenCV
+python3 -c "import cv2; cap = cv2.VideoCapture(0); ret, f = cap.read(); print('Camera OK' if ret else 'FAILED'); cap.release()"
 ```
 
 ---
@@ -139,9 +129,9 @@ ser.close()
 │              Raspberry Pi 5                   │
 │                                               │
 │    ┌──────────┐                               │
-│    │ Camera   │◄── CSI Ribbon Cable ──► 📷    │
-│    │ Port     │                     Camera     │
-│    └──────────┘                     Module 3   │
+│    │ USB      │◄── USB Cable ──► 📷           │
+│    │ Port     │                  USB Webcam    │
+│    └──────────┘                               │
 │                                               │
 │    GPIO Header                                │
 │    ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐                    │
@@ -167,8 +157,10 @@ ser.close()
 
 | Issue | Solution |
 |-------|----------|
-| Camera not detected | Re-seat ribbon cable, verify `start_x=1` in config.txt |
+| Webcam not detected | Unplug and re-plug USB cable, run `lsusb` to verify, try a different USB port |
+| `/dev/video0` missing | Check `ls /dev/video*`; if using another device, update `CAMERA_DEVICE_INDEX` in `.env` |
 | R307 not responding | Check TX↔RX cross-wiring, verify baud rate 57600 |
 | UART permission denied | Add user to dialout group: `sudo usermod -aG dialout $USER` |
 | 3.3V not enough power | Some R307 clones need 5V — check your module's datasheet |
-| Camera shows black frames | Remove lens cap, check lighting |
+| Camera shows black frames | Check lighting, verify webcam works with `v4l2-ctl --list-devices` |
+

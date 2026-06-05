@@ -41,7 +41,7 @@ services:
       APP_ENV: ${APP_ENV:-production}
       DEBUG: ${DEBUG:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:80}
-      CAMERA_MOCK_MODE: ${CAMERA_MOCK_MODE:-true}
+      CAMERA_DEVICE_INDEX: ${CAMERA_DEVICE_INDEX:-0}
       FINGERPRINT_MOCK_MODE: ${FINGERPRINT_MOCK_MODE:-true}
     volumes:
       - face_data:/app/data/faces
@@ -53,7 +53,7 @@ services:
         condition: service_healthy
     # On Raspberry Pi, uncomment these for hardware access:
     # devices:
-    #   - /dev/video0:/dev/video0       # Camera
+    #   - /dev/video0:/dev/video0       # USB Webcam
     #   - /dev/ttyS0:/dev/ttyS0         # R307 UART
     # privileged: true
     networks:

@@ -84,6 +84,52 @@ Get student details by UUID.
 
 ---
 
+## Face Registration
+
+### `GET /students/{student_id}/face` 🔒
+Get face registration status and sample count for a student.
+
+**Response (200):**
+```json
+{
+  "student_id": "uuid",
+  "face_registered": true,
+  "total_samples": 5,
+  "max_samples": 20,
+  "samples": [
+    { "id": "uuid", "student_id": "uuid", "image_path": "data/faces/...", "sample_number": 1 }
+  ]
+}
+```
+
+### `POST /students/{student_id}/face` 🔒 (Admin/Teacher)
+Upload one or more face images to register a student's face.
+
+Each image must contain exactly one clearly visible face. The system generates a 128D embedding from each and stores it for live recognition. Up to 20 samples per student.
+
+**Request:** `multipart/form-data` with `files` field (one or more image files: jpg, png, bmp, webp).
+
+**Response (201):**
+```json
+{
+  "message": "Added 3 face sample(s) for John Doe.",
+  "samples_added": 3,
+  "total_samples": 3,
+  "face_registered": true
+}
+```
+
+### `DELETE /students/{student_id}/face` 🔒 (Admin/Teacher)
+Delete all face embeddings and images for a student, resetting their face registration. Use when a student's appearance has changed significantly.
+
+**Response (200):**
+```json
+{
+  "message": "Deleted 5 face sample(s) for John Doe. Face registration has been reset.",
+  "deleted_count": 5
+}
+```
+
 ## Courses
 
 ### `GET /courses/` 🔒

@@ -24,10 +24,9 @@ pip install -r backend/requirements.txt
 echo "[3/5] Setting up environment..."
 if [ ! -f ".env" ]; then
     cp .env.example .env
-    # Set mock modes for development
-    sed -i 's/CAMERA_MOCK_MODE=false/CAMERA_MOCK_MODE=true/' .env
+    # Set mock mode for fingerprint sensor in development
     sed -i 's/FINGERPRINT_MOCK_MODE=false/FINGERPRINT_MOCK_MODE=true/' .env
-    echo "Created .env with mock mode enabled for development."
+    echo "Created .env with fingerprint mock mode enabled for development."
 fi
 
 # 4. Create directories

@@ -62,7 +62,7 @@ ClassOS automates classroom attendance using AI-powered face recognition on a Ra
 | Component | Model | Purpose |
 |-----------|-------|---------|
 | SBC | Raspberry Pi 5 (8GB) | Main compute |
-| Camera | Pi Camera Module 3 | Face capture & video streaming |
+| Camera | USB Webcam (UVC-compatible) | Face capture & video streaming |
 | Fingerprint | R307 Optical Sensor | Fallback identity verification |
 
 ### Hardware Wiring (R307 → Pi 5)

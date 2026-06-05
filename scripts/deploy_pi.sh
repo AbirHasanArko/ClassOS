@@ -14,10 +14,12 @@ echo "========================================="
 echo "[1/7] Updating system packages..."
 sudo apt-get update && sudo apt-get upgrade -y
 
-# 2. Enable Camera
-echo "[2/7] Enabling camera interface..."
-if ! grep -q "start_x=1" /boot/firmware/config.txt; then
-    echo "start_x=1" | sudo tee -a /boot/firmware/config.txt
+# 2. Verify USB Webcam
+echo "[2/7] Checking for USB webcam..."
+if ls /dev/video* 1>/dev/null 2>&1; then
+    echo "USB webcam detected: $(ls /dev/video*)"
+else
+    echo "Warning: No USB webcam detected at /dev/video*. Plug in a USB webcam before starting."
 fi
 
 # 3. Enable UART for R307 Fingerprint Sensor
