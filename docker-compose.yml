@@ -40,7 +40,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-change-me-to-a-random-64-char-string}
       APP_ENV: ${APP_ENV:-production}
       DEBUG: ${DEBUG:-false}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       CAMERA_DEVICE_INDEX: ${CAMERA_DEVICE_INDEX:-0}
       FINGERPRINT_MOCK_MODE: ${FINGERPRINT_MOCK_MODE:-true}
     volumes:
