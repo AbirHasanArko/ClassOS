@@ -31,8 +31,21 @@ class HeadCounter:
             return
             
         print("Loading YOLOv8 Nano model for head counting...")
-        # Load the PyTorch model (ultralytics handles the .pt format)
-        self.model = YOLO(model_path)
+        # Workaround for PyTorch 2.6 UnpicklingError with older Ultralytics versions
+        import torch
+        original_load = torch.load
+        
+        def bypass_weights_only_load(*args, **kwargs):
+            if 'weights_only' not in kwargs:
+                kwargs['weights_only'] = False
+            return original_load(*args, **kwargs)
+            
+        try:
+            torch.load = bypass_weights_only_load
+            self.model = YOLO(model_path)
+        finally:
+            torch.load = original_load
+            
         self._is_loaded = True
         print("YOLOv8 model loaded.")
 
