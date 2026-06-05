@@ -42,11 +42,11 @@ class Settings(BaseSettings):
         """Return CORS origins as a list."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
-    # ----- Camera -----
+    # ----- Camera (USB Webcam) -----
     CAMERA_RESOLUTION_WIDTH: int = 1280
     CAMERA_RESOLUTION_HEIGHT: int = 720
     CAMERA_FPS: int = 30
-    CAMERA_MOCK_MODE: bool = False
+    CAMERA_DEVICE_INDEX: int = 0  # /dev/video0 (or index for cv2.VideoCapture)
 
     # ----- Fingerprint Sensor (R307) -----
     FINGERPRINT_UART_PORT: str = "/dev/ttyS0"

@@ -1,7 +1,8 @@
-import time
 import asyncio
+# pyrefly: ignore [missing-import]
+import cv2
 import numpy as np
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Any, Dict
 from uuid import UUID
 
 from ai_engine.face_detector import detector as face_detector
@@ -22,7 +23,7 @@ class AIPipeline:
         await recognizer.load_embeddings_from_db()
         head_counter.load_model()
         
-    def process_frame(self, frame: np.ndarray, on_result: Callable) -> np.ndarray:
+    def process_frame(self, frame: np.ndarray, on_result: Callable[[Dict[str, Any]], None]) -> np.ndarray:
         """
         Process a single frame through the pipeline.
         Draws bounding boxes and triggers callbacks for logic engine.
