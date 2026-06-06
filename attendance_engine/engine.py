@@ -38,12 +38,14 @@ class AttendanceEngine:
 
     async def _engine_loop(self):
         """Background loop that processes frames if a session is active."""
-        camera.start()
-        
         while self.is_running:
             session_id = session_manager.get_active_session()
-            
+
             if session_id:
+                # Start camera only when a session is active
+                if not camera._running:
+                    camera.start()
+
                 frame = camera.get_latest_frame()
                 if frame is not None:
                     # process_frame is currently synchronous and blocks this loop briefly.
@@ -51,13 +53,16 @@ class AttendanceEngine:
                     def sync_callback(result):
                         # Schedule the async handler safely
                         asyncio.create_task(self._handle_ai_result(session_id, result))
-                        
+
                     pipeline.is_running = True
                     pipeline.process_frame(frame, sync_callback)
                 else:
                     await asyncio.sleep(0.1)
             else:
-                # No active session, idle
+                # No active session — release the camera so other processes
+                # (e.g. browser getUserMedia for face enrollment) can use it
+                if camera._running:
+                    camera.stop()
                 pipeline.is_running = False
                 await asyncio.sleep(1.0)
 
