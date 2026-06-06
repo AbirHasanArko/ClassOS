@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, BookOpen, BarChart3, Settings, LogOut, CheckSquare } from 'lucide-react';
+import { Home, Users, BookOpen, BarChart3, Settings, LogOut, CheckSquare, Info } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../ui/Button';
 
@@ -15,6 +15,7 @@ export const Sidebar = () => {
     { name: 'Analytics', path: '/analytics', icon: BarChart3, roles: ['admin', 'teacher'] },
     { name: 'Users', path: '/users', icon: Users, roles: ['admin'] },
     { name: 'Settings', path: '/settings', icon: Settings, roles: ['admin', 'teacher', 'student'] },
+    { name: 'About', path: '/about', icon: Info, roles: ['admin', 'teacher', 'student'] },
   ];
 
   // Filter based on role
