@@ -32,6 +32,7 @@
 - [🌟 Why ClassOS is One of a Kind](#-why-classos-is-one-of-a-kind)
 - [📚 Extended Documentation](#-extended-documentation)
 - [🚀 Core Features](#-core-features)
+- [🛠️ Technology Stack](#️-technology-stack)
 - [🧠 Deep Dive: The AI Models](#-deep-dive-the-ai-models)
 - [🏗️ System Architecture](#-system-architecture)
 - [🤖 AI & Logic Pipeline](#-ai--logic-pipeline)
@@ -79,6 +80,33 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 - **Role-Based Access Control:** Distinct experiences for Admins, Teachers, and Students.
 - **Ghost-Session Resiliency:** The backend automatically recovers and cleans up abandoned sessions if a teacher's laptop disconnects unexpectedly.
 - **One-Command Deployment:** Completely containerized with Docker Compose.
+
+---
+
+## 🛠️ Technology Stack
+
+**Frontend**
+- **Framework:** React 18 with Vite
+- **Styling:** Tailwind CSS + UI components inspired by shadcn/ui
+- **State Management:** React Context API
+- **Charts:** Chart.js (via react-chartjs-2)
+
+**Backend**
+- **Framework:** FastAPI (Python 3.11)
+- **Database ORM:** SQLAlchemy (Async)
+- **Authentication:** JWT (JSON Web Tokens) with bcrypt
+- **Real-time:** WebSockets for live attendance broadcasting
+
+**AI & Computer Vision**
+- **Face Recognition:** dlib (ResNet-based 128D embeddings)
+- **Object Detection:** YOLOv8 Nano by Ultralytics
+- **Image Processing:** OpenCV (cv2)
+
+**Infrastructure & Hardware**
+- **Database:** PostgreSQL 16
+- **Deployment:** Docker & Docker Compose
+- **Hardware:** Raspberry Pi 5
+- **Biometrics:** R307 Optical Fingerprint Sensor (via UART)
 
 ---
 
