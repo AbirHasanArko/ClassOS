@@ -49,8 +49,8 @@ export const CoursesPage = () => {
     setEnrolledIds(new Set()); // Clear first
     
     try {
-      // Fetch all students (in a real app you'd paginate or search)
-      const studentsData = await getStudents(0, 500);
+      // Fetch all students (backend enforces max limit of 100)
+      const studentsData = await getStudents(0, 100);
       setAllStudents(studentsData.items || []);
       
       // Fetch currently enrolled student IDs
