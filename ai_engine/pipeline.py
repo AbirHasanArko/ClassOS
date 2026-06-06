@@ -17,6 +17,7 @@ class AIPipeline:
         self.frame_count = 0
         self.last_head_count = 0
         self.is_running = False
+        self.latest_annotated_frame = None
         
     async def initialize(self):
         """Load models into memory before starting."""
@@ -92,6 +93,7 @@ class AIPipeline:
         cv2.putText(annotated_frame, f"Head Count: {self.last_head_count}", (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
                     
+        self.latest_annotated_frame = annotated_frame
         return annotated_frame
 
 pipeline = AIPipeline()
