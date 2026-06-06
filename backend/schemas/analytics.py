@@ -20,3 +20,21 @@ class TrendDataPoint(BaseModel):
 
 class TrendData(BaseModel):
     trends: List[TrendDataPoint]
+
+from datetime import datetime
+from uuid import UUID
+
+class SessionSummaryOut(BaseModel):
+    id: UUID
+    course_code: str
+    course_name: str
+    teacher_name: str
+    started_at: datetime
+    ended_at: datetime | None
+    head_count: int
+    recognized_count: int
+    status: str
+
+class SessionSummaryList(BaseModel):
+    items: List[SessionSummaryOut]
+    total: int
