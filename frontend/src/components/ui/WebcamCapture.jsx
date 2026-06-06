@@ -25,6 +25,12 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
   const startStream = useCallback(async () => {
     setError(null);
     setIsReady(false);
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError('Camera access is not supported. Please ensure you are using a secure connection (HTTPS or localhost).');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
