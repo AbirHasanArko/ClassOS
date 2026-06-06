@@ -83,6 +83,16 @@ async def get_course(
         
     return course
 
+@router.get("/{course_id}/students", response_model=list[UUID])
+async def get_course_students(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    stmt = select(Enrollment.student_id).where(Enrollment.course_id == course_id)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
 @router.post("/{course_id}/enroll", status_code=status.HTTP_200_OK)
 async def enroll_students(
     course_id: UUID,
@@ -90,25 +100,35 @@ async def enroll_students(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
 ):
+    from sqlalchemy import delete
+    
     # Verify course exists
     result = await db.execute(select(Course).where(Course.id == course_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
         
-    # Enroll students
-    enrolled_count = 0
-    for student_id in request.student_ids:
-        # Check if already enrolled
-        stmt = select(Enrollment).where(
-            Enrollment.course_id == course_id, 
-            Enrollment.student_id == student_id
+    # Get current enrollments
+    stmt = select(Enrollment.student_id).where(Enrollment.course_id == course_id)
+    res = await db.execute(stmt)
+    current_student_ids = set(res.scalars().all())
+    
+    requested_student_ids = set(request.student_ids)
+    
+    # Delete removed students
+    to_remove = current_student_ids - requested_student_ids
+    if to_remove:
+        del_stmt = delete(Enrollment).where(
+            Enrollment.course_id == course_id,
+            Enrollment.student_id.in_(to_remove)
         )
-        res = await db.execute(stmt)
-        if not res.scalar_one_or_none():
-            enrollment = Enrollment(course_id=course_id, student_id=student_id)
-            db.add(enrollment)
-            enrolled_count += 1
+        await db.execute(del_stmt)
+        
+    # Add new students
+    to_add = requested_student_ids - current_student_ids
+    for student_id in to_add:
+        enrollment = Enrollment(course_id=course_id, student_id=student_id)
+        db.add(enrollment)
             
     await db.commit()
-    return {"message": f"Successfully enrolled {enrolled_count} students"}
+    return {"message": f"Successfully synced enrollments. Added {len(to_add)}, removed {len(to_remove)}."}

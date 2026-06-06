@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { getCourses, createCourse } from '../api/courses';
-import { BookOpen, Plus } from 'lucide-react';
+import { getCourses, createCourse, enrollStudents, getCourseStudents } from '../api/courses';
+import { getStudents } from '../api/students';
+import { BookOpen, Plus, Users, CheckSquare, Square, X } from 'lucide-react';
 
 export const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -10,6 +11,12 @@ export const CoursesPage = () => {
   const [newCourse, setNewCourse] = useState({
     course_code: '', course_name: '', schedule: ''
   });
+
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [allStudents, setAllStudents] = useState([]);
+  const [enrolledIds, setEnrolledIds] = useState(new Set());
+  const [isSavingEnrollment, setIsSavingEnrollment] = useState(false);
 
   const fetchCourses = async () => {
     try {
@@ -33,6 +40,50 @@ export const CoursesPage = () => {
       fetchCourses();
     } catch (err) {
       console.error('Failed to create course', err);
+    }
+  };
+
+  const handleOpenEnrollModal = async (course) => {
+    setSelectedCourse(course);
+    setShowEnrollModal(true);
+    setEnrolledIds(new Set()); // Clear first
+    
+    try {
+      // Fetch all students (in a real app you'd paginate or search)
+      const studentsData = await getStudents(0, 500);
+      setAllStudents(studentsData.items || []);
+      
+      // Fetch currently enrolled student IDs
+      const enrolled = await getCourseStudents(course.id);
+      setEnrolledIds(new Set(enrolled));
+    } catch (err) {
+      console.error('Failed to load enrollment data', err);
+    }
+  };
+
+  const toggleStudentEnrollment = (studentId) => {
+    setEnrolledIds(prev => {
+      const next = new Set(prev);
+      if (next.has(studentId)) {
+        next.delete(studentId);
+      } else {
+        next.add(studentId);
+      }
+      return next;
+    });
+  };
+
+  const handleSaveEnrollments = async () => {
+    if (!selectedCourse) return;
+    setIsSavingEnrollment(true);
+    try {
+      await enrollStudents(selectedCourse.id, Array.from(enrolledIds));
+      setShowEnrollModal(false);
+      setSelectedCourse(null);
+    } catch (err) {
+      console.error('Failed to save enrollments', err);
+    } finally {
+      setIsSavingEnrollment(false);
     }
   };
 
@@ -63,7 +114,16 @@ export const CoursesPage = () => {
               <CardTitle className="text-lg mt-3">{course.course_name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">{course.schedule || 'No schedule set'}</p>
+              <p className="text-sm text-muted-foreground mb-4">{course.schedule || 'No schedule set'}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={(e) => { e.stopPropagation(); handleOpenEnrollModal(course); }}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Manage Students
+              </Button>
             </CardContent>
           </Card>
         ))}
@@ -121,6 +181,70 @@ export const CoursesPage = () => {
                 </div>
               </form>
             </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Enroll Students Modal */}
+      {showEnrollModal && selectedCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card className="w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+              <div>
+                <CardTitle>Manage Enrollments</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedCourse.course_code} — {selectedCourse.course_name}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowEnrollModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            
+            <CardContent className="flex-1 overflow-auto p-0">
+              {allStudents.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  No students found in the system.
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {allStudents.map(student => {
+                    const isEnrolled = enrolledIds.has(student.id);
+                    return (
+                      <div 
+                        key={student.id} 
+                        className={`flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors ${isEnrolled ? 'bg-primary/5' : ''}`}
+                        onClick={() => toggleStudentEnrollment(student.id)}
+                      >
+                        <div>
+                          <p className="font-medium">{student.first_name} {student.last_name}</p>
+                          <p className="text-sm text-muted-foreground">ID: {student.student_id}</p>
+                        </div>
+                        <div>
+                          {isEnrolled ? (
+                            <CheckSquare className="h-5 w-5 text-primary" />
+                          ) : (
+                            <Square className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+            
+            <div className="p-4 border-t flex justify-between items-center bg-muted/20">
+              <span className="text-sm text-muted-foreground font-medium">
+                {enrolledIds.size} students selected
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowEnrollModal(false)}>Cancel</Button>
+                <Button onClick={handleSaveEnrollments} disabled={isSavingEnrollment}>
+                  {isSavingEnrollment ? 'Saving...' : 'Save Enrollments'}
+                </Button>
+              </div>
+            </div>
           </Card>
         </div>
       )}

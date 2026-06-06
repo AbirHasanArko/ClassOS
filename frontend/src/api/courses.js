@@ -14,3 +14,8 @@ export const enrollStudents = async (courseId, studentIds) => {
   const response = await client.post(`/courses/${courseId}/enroll`, { student_ids: studentIds });
   return response.data;
 };
+
+export const getCourseStudents = async (courseId) => {
+  const response = await client.get(`/courses/${courseId}/students`);
+  return response.data;
+};
