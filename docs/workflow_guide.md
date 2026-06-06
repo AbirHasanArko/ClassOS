@@ -33,6 +33,13 @@ For each student, you must register their biometrics so the AI can identify them
 3. The sensor will capture the print, assign it an internal ID, and store the reference in the database.
    *(Note: If the hardware sensor is disconnected, the system will fall back to "Mock Mode" and simulate a successful enrollment).*
 
+### Step 1.4: Enroll Students into a Course
+Before taking attendance, students must be explicitly enrolled into the course they are taking:
+1. Navigate to the **Courses** page in the dashboard.
+2. Click the **Manage Students** button next to the relevant course.
+3. A modal will appear listing all students in the system. Check the boxes next to the students who should be enrolled.
+4. Click **Save Changes**. Only enrolled students will appear on the attendance sheet for this course.
+
 ---
 
 ## 2. Teacher Workflow (Daily Attendance)
