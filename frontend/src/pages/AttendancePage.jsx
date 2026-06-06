@@ -16,6 +16,7 @@ export const AttendancePage = () => {
   const [recognizedCount, setRecognizedCount] = useState(0);
   const [fingerprintNeeded, setFingerprintNeeded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sessionError, setSessionError] = useState('');
   const [activeTab, setActiveTab] = useState('log'); // 'log' or 'roster'
   const [roster, setRoster] = useState([]);
 
@@ -79,6 +80,7 @@ export const AttendancePage = () => {
   const handleStartSession = async () => {
     if (!selectedCourse) return;
     setLoading(true);
+    setSessionError('');
     try {
       const session = await startSession(selectedCourse);
       setActiveSession(session);
@@ -90,6 +92,12 @@ export const AttendancePage = () => {
       connect(session.id);
     } catch (err) {
       console.error('Failed to start session', err);
+      const detail = err?.response?.data?.detail;
+      setSessionError(
+        typeof detail === 'string'
+          ? detail
+          : 'Failed to start session. Check that a course is selected and no active session already exists.'
+      );
     }
     setLoading(false);
   };
@@ -97,12 +105,17 @@ export const AttendancePage = () => {
   const handleEndSession = async () => {
     if (!activeSession) return;
     setLoading(true);
+    setSessionError('');
     try {
       await endSession(activeSession.id);
       disconnect();
       setActiveSession(null);
     } catch (err) {
       console.error('Failed to end session', err);
+      const detail = err?.response?.data?.detail;
+      setSessionError(
+        typeof detail === 'string' ? detail : 'Failed to end session.'
+      );
     }
     setLoading(false);
   };
@@ -179,6 +192,15 @@ export const AttendancePage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Session error banner */}
+      {sessionError && (
+        <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-sm flex items-start gap-2">
+          <span className="font-semibold shrink-0">Error:</span>
+          <span>{sessionError}</span>
+          <button className="ml-auto text-destructive/60 hover:text-destructive" onClick={() => setSessionError('')}>✕</button>
+        </div>
+      )}
 
       {/* Main content — Live feed + Attendance */}
       <div className="grid gap-6 lg:grid-cols-3">
