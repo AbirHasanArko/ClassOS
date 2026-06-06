@@ -54,8 +54,8 @@ class Settings(BaseSettings):
     FINGERPRINT_MOCK_MODE: bool = False
 
     # ----- AI Engine -----
-    FACE_CONFIDENCE_AUTO: float = 0.90
-    FACE_CONFIDENCE_FINGERPRINT: float = 0.70
+    FACE_CONFIDENCE_AUTO: float = 0.75
+    FACE_CONFIDENCE_FINGERPRINT: float = 0.60
     YOLO_MODEL_PATH: str = "models/yolov8n.pt"
     YOLO_CONFIDENCE: float = 0.5
     HEAD_COUNT_INTERVAL: int = 5
