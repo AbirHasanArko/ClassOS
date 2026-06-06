@@ -48,16 +48,23 @@ class AttendanceEngine:
 
                 frame = camera.get_latest_frame()
                 if frame is not None:
-                    # process_frame is currently synchronous and blocks this loop briefly.
-                    # We pass a callback wrapper to handle the results asynchronously.
+                    # process_frame runs in a background thread, so the callback 
+                    # must safely schedule the async handler back onto the main loop.
+                    loop = asyncio.get_running_loop()
+                    
                     def sync_callback(result):
-                        # Schedule the async handler safely
-                        asyncio.create_task(self._handle_ai_result(session_id, result))
+                        asyncio.run_coroutine_threadsafe(
+                            self._handle_ai_result(session_id, result), 
+                            loop
+                        )
 
                     pipeline.is_running = True
                     # Run the heavy synchronous AI pipeline in a separate thread
                     # so it doesn't block the FastAPI async event loop
-                    await asyncio.to_thread(pipeline.process_frame, frame, sync_callback)
+                    try:
+                        await asyncio.to_thread(pipeline.process_frame, frame, sync_callback)
+                    except Exception as e:
+                        print(f"Error in pipeline.process_frame: {e}")
                 else:
                     await asyncio.sleep(0.1)
             else:
