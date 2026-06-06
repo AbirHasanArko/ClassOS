@@ -31,13 +31,16 @@
 
 - [🌟 Why ClassOS is One of a Kind](#-why-classos-is-one-of-a-kind)
 - [🚀 Core Features](#-core-features)
+- [🧠 Deep Dive: The AI Models](#-deep-dive-the-ai-models)
 - [🏗️ System Architecture](#-system-architecture)
 - [🤖 AI & Logic Pipeline](#-ai--logic-pipeline)
 - [🔌 Embedded Hardware Design](#-embedded-hardware-design)
 - [💻 Web Dashboard & Analytics](#-web-dashboard--analytics)
+- [📖 Step-by-Step Usage Guide](#-step-by-step-usage-guide)
 - [⚡ Quick Start Deployment](#-quick-start-deployment)
 - [🛠️ Development Setup](#️-development-setup)
-- [🔒 Security](#-security)
+- [🔒 Security & Privacy](#-security--privacy)
+- [🗺️ Future Roadmap](#️-future-roadmap)
 - [📝 License & Acknowledgments](#-license--acknowledgments)
 
 ---
@@ -47,7 +50,7 @@
 Most automated attendance systems fall into two categories: cloud-dependent APIs that are slow and compromise student privacy, or fragile local scripts that lack a modern user interface. 
 
 **ClassOS bridges the gap by delivering a state-of-the-art enterprise architecture running entirely on the Edge.** 
-By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI inferencing locally, orchestrates low-level hardware serial communication (UART) for fingerprint fallback, and serves a beautiful, high-performance React dashboard to any device on the network—all without requiring an active internet connection.
+By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI inferencing locally, orchestrates low-level hardware serial communication (UART) for fingerprint fallback, and serves a beautiful, high-performance React dashboard to any device on the network—all without requiring an active internet connection. It is a complete, self-contained operating environment for the modern classroom.
 
 ---
 
@@ -60,7 +63,17 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 - **Real-Time WebSocket Sync:** As students are detected, their names instantly appear on the teacher's screen without refreshing.
 - **Full-Stack Analytics:** Automatic data aggregation with CSV exports, visual charts, and historical session logs.
 - **Role-Based Access Control:** Distinct experiences for Admins, Teachers, and Students.
+- **Ghost-Session Resiliency:** The backend automatically recovers and cleans up abandoned sessions if a teacher's laptop disconnects unexpectedly.
 - **One-Command Deployment:** Completely containerized with Docker Compose.
+
+---
+
+## 🧠 Deep Dive: The AI Models
+
+ClassOS uses a dual-model approach to ensure extremely high accuracy without bogging down the Raspberry Pi's CPU.
+
+1. **Face Embedding (dlib / ResNet):** When a student is enrolled, ClassOS extracts a 128-dimensional embedding of their face using a ResNet network trained on 3 million faces. During a live session, the system calculates the Euclidean distance between the live camera face and the stored database embeddings to generate a confidence percentage.
+2. **Crowd Verification (YOLOv8 Nano):** Face recognition alone can miss students sitting far back or looking down. To prevent proxy attendance and ensure total accuracy, we run Ultralytics' YOLOv8-nano model in the background to count the total number of human heads in the frame. If the head count exceeds the recognized face count, the teacher is alerted.
 
 ---
 
@@ -140,15 +153,13 @@ flowchart TD
     N -- Valid Scan --> H
 ```
 
-### Recognition Thresholds (Updated)
+### Recognition Thresholds
 
 | Confidence Score | Action Taken | Logging Method |
 |------------------|--------------|----------------|
 | **> 75%** | Automatic Attendance | `FACE` |
 | **60% - 75%** | Fingerprint Verification Required | `FINGERPRINT` |
 | **< 60%** | Ignored / Labeled Unknown | None |
-
-> *Note: Thresholds were recently tuned down from 90% to 75% to better accommodate standard webcam lighting in real-world classrooms.*
 
 ---
 
@@ -184,6 +195,24 @@ The frontend is a beautifully designed SPA (Single Page Application) built with 
 - **Analytics & History:** View historical session logs, overall attendance rates, and visualize pie charts differentiating face vs fingerprint authentications.
 - **CSV Data Export:** Generate downloadable `.csv` spreadsheets of session data with a single click.
 - **Face/Fingerprint Enrollment:** Admins can securely enroll new students directly from the browser using the Pi's connected hardware.
+
+---
+
+## 📖 Step-by-Step Usage Guide
+
+1. **Student Enrollment:** 
+   - An Admin navigates to the **Students** tab and clicks "Add Student".
+   - The admin inputs the student's ID and Name.
+   - The system triggers the webcam. The student looks at the camera, and ClassOS extracts and saves their facial embedding.
+   - (Optional) The admin clicks "Enroll Fingerprint", prompting the student to press their finger against the R307 sensor twice.
+2. **Course Creation:**
+   - The teacher creates a new Course (e.g., "CS101") and selects which students are enrolled in that class.
+3. **Running a Session:**
+   - At the start of a lecture, the teacher logs into ClassOS, goes to the **Attendance** tab, and clicks "Start Session".
+   - The Raspberry Pi immediately boots up the AI background thread, turns on the camera, and begins streaming the live MJPEG feed to the dashboard.
+   - As students walk into the room, bounding boxes appear around their faces. Green boxes indicate they have been successfully logged in the database.
+4. **Exporting Data:**
+   - After class, the teacher clicks "End Session". They can then navigate to the **Analytics** tab to download a CSV of the exact time and method (Face vs Fingerprint) each student used to check in.
 
 ---
 
@@ -240,12 +269,21 @@ npm run dev
 
 ---
 
-## 🔒 Security
+## 🔒 Security & Privacy
 
 - **JWT Authentication:** Secure API endpoints with expiring tokens.
-- **Edge Processing:** Images are processed locally in RAM and discarded. Faces are not sent to cloud servers.
+- **Edge Processing:** Images are processed locally in RAM and discarded immediately. Video feeds and facial data are **never** sent to external cloud servers, protecting student privacy.
 - **Password Hashing:** Strict bcrypt hashing (12 rounds) for all user passwords.
 - **Database Safety:** SQLAlchemy ORM strictly prevents SQL Injection attacks.
+
+---
+
+## 🗺️ Future Roadmap
+
+- [ ] **Multi-Camera Support:** Support for an array of RTSP IP cameras stationed around a large lecture hall.
+- [ ] **Mobile App:** A native iOS/Android application for teachers to start sessions from their phone.
+- [ ] **Automated Email Reports:** Send weekly attendance reports directly to students.
+- [ ] **RFID Integration:** Add a tertiary fallback mechanism using standard student RFID cards.
 
 ---
 
