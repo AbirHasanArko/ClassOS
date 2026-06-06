@@ -41,6 +41,7 @@ async def get_current_user(
     """
     from backend.auth.jwt_handler import verify_access_token
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from models.user import User
 
     token = credentials.credentials
@@ -53,7 +54,16 @@ async def get_current_user(
         )
 
     user_id = payload.get("sub")
-    result = await db.execute(select(User).where(User.id == user_id))
+    # Eagerly load all profile relationships to prevent async lazy-load crashes
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.admin_profile),
+            selectinload(User.teacher_profile),
+            selectinload(User.student_profile),
+        )
+        .where(User.id == user_id)
+    )
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active:
