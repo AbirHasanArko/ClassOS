@@ -30,6 +30,7 @@
 ## 📑 Table of Contents
 
 - [🌟 Why ClassOS is One of a Kind](#-why-classos-is-one-of-a-kind)
+- [📚 Extended Documentation](#-extended-documentation)
 - [🚀 Core Features](#-core-features)
 - [🧠 Deep Dive: The AI Models](#-deep-dive-the-ai-models)
 - [🏗️ System Architecture](#-system-architecture)
@@ -42,6 +43,19 @@
 - [🔒 Security & Privacy](#-security--privacy)
 - [🗺️ Future Roadmap](#️-future-roadmap)
 - [📝 License & Acknowledgments](#-license--acknowledgments)
+
+---
+
+## 📚 Extended Documentation
+
+For deeper technical dives, please refer to the dedicated documentation files:
+
+- 📊 **[Database ER Diagram (ER_DIAGRAM.md)](docs/ER_DIAGRAM.md)**
+- 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
+- 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
+- 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
+- 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
+- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**
 
 ---
 
