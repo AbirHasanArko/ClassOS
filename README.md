@@ -1,4 +1,4 @@
-# 🎓 ClassOS — Edge AI Classroom Attendance System
+# 🎓 ClassOS - Embedded AI Classroom Attendance System
 
 <p align="center">
   <strong>The ultimate, fully automated classroom attendance solution. 
@@ -19,10 +19,10 @@
 
 ## 👨‍💻 Developers
 
-**Abir Hasan Arko** — Lead Developer  
+**Abir Hasan Arko**  
 📧 [abirhasanarko2004@gmail.com](mailto:abirhasanarko2004@gmail.com) | 🐙 [GitHub](https://github.com/AbirHasanArko) | 💼 [LinkedIn](https://www.linkedin.com/in/abirhasanarko/)
 
-**Md Shomik Shahriar** — Developer  
+**Md Shomik Shahriar** 
 🐙 [GitHub](https://github.com/Hapi-Guy) | 💼 [LinkedIn](https://www.linkedin.com/in/shomik101001/)
 
 ---
