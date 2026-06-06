@@ -61,7 +61,13 @@ async def start_session(
         )
         db.add(att)
     
-    await db.commit()
+    # Update memory cache so background engine knows session is active
+    from attendance_engine.session_manager import session_manager
+    session_manager.active_sessions[str(session.id)] = {
+        "course_id": str(session.course_id),
+        "recognized_students": set()
+    }
+
     return session
 
 @router.post("/sessions/{session_id}/end", response_model=SessionOut)
@@ -84,6 +90,11 @@ async def end_session(
     
     await db.commit()
     await db.refresh(session)
+
+    # Remove from memory cache so background engine stops camera
+    from attendance_engine.session_manager import session_manager
+    session_manager.active_sessions.pop(str(session_id), None)
+
     return session
 
 @router.post("/sessions/{session_id}/attendance", response_model=AttendanceOut)
