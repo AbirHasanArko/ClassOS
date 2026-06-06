@@ -32,8 +32,18 @@ async def start_session(
         AttendanceSession.status == SessionStatus.ACTIVE
     )
     res = await db.execute(stmt)
-    if res.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Active session already exists for this course")
+    existing_session = res.scalar_one_or_none()
+    
+    if existing_session:
+        # Auto-complete the ghost session instead of blocking the user
+        existing_session.status = SessionStatus.COMPLETED
+        existing_session.ended_at = datetime.now(timezone.utc)
+        
+        # Remove from memory cache if it was there
+        from attendance_engine.session_manager import session_manager
+        session_manager.active_sessions.pop(str(existing_session.id), None)
+        
+        await db.commit()
 
     teacher_id = current_user.teacher_profile.id if current_user.teacher_profile else None
 
