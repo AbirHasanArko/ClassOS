@@ -93,11 +93,16 @@ export const AttendancePage = () => {
     } catch (err) {
       console.error('Failed to start session', err);
       const detail = err?.response?.data?.detail;
-      setSessionError(
-        typeof detail === 'string'
-          ? detail
-          : 'Failed to start session. Check that a course is selected and no active session already exists.'
-      );
+      let msg = 'Failed to start session.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        // Pydantic 422 validation error — show first field + message
+        msg = `Validation error: ${detail[0].loc?.slice(1).join(' → ')} — ${detail[0].msg}`;
+      } else if (err?.response?.status) {
+        msg = `Server error ${err.response.status}. Check backend logs.`;
+      }
+      setSessionError(msg);
     }
     setLoading(false);
   };
