@@ -18,32 +18,38 @@
   
 ---
 
-## 👨‍💻 Developers
+## 🌟 Introduction: Why ClassOS is One of a Kind
 
-**Abir Hasan Arko**  
-🐙 [GitHub](https://github.com/AbirHasanArko) | 💼 [LinkedIn](https://www.linkedin.com/in/abirhasanarko/)
+Most automated attendance systems fall into two categories: cloud-dependent APIs that are slow and compromise student privacy, or fragile local scripts that lack a modern user interface. 
 
-**Md Shomik Shahriar**  
-🐙 [GitHub](https://github.com/Hapi-Guy) | 💼 [LinkedIn](https://www.linkedin.com/in/shomik101001/)
+**ClassOS bridges the gap by delivering a state-of-the-art enterprise architecture running entirely on the Edge.** 
+By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI inferencing locally, orchestrates low-level hardware serial communication (UART) for fingerprint fallback, and serves a beautiful, high-performance React dashboard to any device on the network—all without requiring an active internet connection. It is a complete, self-contained operating environment for the modern classroom.
 
 ---
 
 ## 📑 Table of Contents
 
+- [Introduction: Why ClassOS is One of a Kind](#-introduction-why-classos-is-one-of-a-kind)
 - [Core Features](#-core-features)
 - [Technology Stack](#️-technology-stack)
-- [Why ClassOS is One of a Kind](#-why-classos-is-one-of-a-kind)
-- [Deep Dive: The AI Models](#-deep-dive-the-ai-models)
 - [System Architecture](#-system-architecture)
+  - [Project Structure](#-project-structure)
+  - [Component Breakdown](#-component-breakdown)
 - [AI & Logic Pipeline](#-ai--logic-pipeline)
-- [Embedded Hardware Design](#-embedded-hardware-design)
-- [Web Dashboard & Analytics](#-web-dashboard--analytics)
-- [Step-by-Step Usage Guide](#-step-by-step-usage-guide)
-- [Quick Start Deployment](#-quick-start-deployment)
-- [Development Setup](#️-development-setup)
+  - [The AI Models](#-the-ai-models)
+  - [Recognition Thresholds](#-recognition-thresholds)
+- [Hardware Integration](#-hardware-integration)
+  - [Embedded Hardware Design](#-embedded-hardware-design)
+  - [R307 Wiring Guide](#-r307-wiring-guide)
+- [User Experience & Dashboard](#️-user-experience--dashboard)
+  - [Step-by-Step Usage Guide](#-step-by-step-usage-guide)
+- [Getting Started](#-getting-started)
+  - [Quick Start Deployment](#-quick-start-deployment)
+  - [Development Setup](#️-development-setup)
 - [Security & Privacy](#-security--privacy)
-- [Future Roadmap](#️-future-roadmap)
 - [Extended Documentation](#-extended-documentation)
+- [Future Roadmap](#️-future-roadmap)
+- [Developers](#-developers)
 - [License & Acknowledgments](#-license--acknowledgments)
 
 ---
@@ -86,24 +92,6 @@
 - **Deployment:** Docker & Docker Compose
 - **Hardware:** Raspberry Pi 5
 - **Biometrics:** R307 Optical Fingerprint Sensor (via UART)
-
----
-
-## 🌟 Why ClassOS is One of a Kind
-
-Most automated attendance systems fall into two categories: cloud-dependent APIs that are slow and compromise student privacy, or fragile local scripts that lack a modern user interface. 
-
-**ClassOS bridges the gap by delivering a state-of-the-art enterprise architecture running entirely on the Edge.** 
-By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI inferencing locally, orchestrates low-level hardware serial communication (UART) for fingerprint fallback, and serves a beautiful, high-performance React dashboard to any device on the network—all without requiring an active internet connection. It is a complete, self-contained operating environment for the modern classroom.
-
----
-
-## 🧠 Deep Dive: The AI Models
-
-ClassOS uses a dual-model approach to ensure extremely high accuracy without bogging down the Raspberry Pi's CPU.
-
-1. **Face Embedding (dlib / ResNet):** When a student is enrolled, ClassOS extracts a 128-dimensional embedding of their face using a ResNet network trained on 3 million faces. During a live session, the system calculates the Euclidean distance between the live camera face and the stored database embeddings to generate a confidence percentage.
-2. **Crowd Verification (YOLOv8 Nano):** Face recognition alone can miss students sitting far back or looking down. To prevent proxy attendance and ensure total accuracy, we run Ultralytics' YOLOv8-nano model in the background to count the total number of human heads in the frame. If the head count exceeds the recognized face count, the teacher is alerted.
 
 ---
 
@@ -157,7 +145,26 @@ graph TD
     Orchestrator -- Broadcasts --> WS_Mgr
 ```
 
-### 🔍 Detailed Component Breakdown & Working Principles
+### 📂 Project Structure
+
+```text
+ClassOS/
+├── ai_engine/              # Computer vision models (dlib ResNet, YOLOv8 head counter)
+├── attendance_engine/      # Core orchestration tying AI recognitions to DB attendance sessions
+├── backend/                # FastAPI application layer (REST endpoints, WebSockets, Auth)
+├── camera_service/         # Handles raw frame capture from USB Webcam and MJPEG encoding
+├── database/               # Database connection logic and Alembic migration scripts
+├── docker/                 # Dockerfiles used to containerize the different services
+├── docs/                   # Extended project documentation (ER Diagrams, API references)
+├── fingerprint_service/    # Hardware serial communication (UART) for the R307 sensor
+├── frontend/               # The React SPA built with Vite and Tailwind CSS
+├── models/                 # Shared SQLAlchemy ORM models defining the database schema
+├── nginx/                  # Reverse proxy configuration for routing traffic in production
+├── scripts/                # Utility and hardware testing scripts (seed_db.py, test_camera.py)
+└── docker-compose.yml      # Orchestrates all containers (Frontend, Backend, DB, Nginx)
+```
+
+### 🔍 Component Breakdown
 
 #### 1. The Edge Server (Raspberry Pi 5)
 - **Role:** The central computing hub that runs the entire software stack. By acting as an edge node, it guarantees sub-second latency for heavy AI inferencing without relying on external cloud servers or active internet connections.
@@ -183,50 +190,12 @@ graph TD
   - **ConnectionManager:** Maintains active WebSocket connections and handles disconnects/reconnects without dropping live session states.
   - **Pydantic Schemas:** Enforces strict data validation and serialization for all incoming and outgoing API traffic.
 
-#### 4. AI & Computer Vision Service
-- **Role:** Processes raw video frames into actionable attendance and security data.
-- **Interconnection:** Runs locally within the FastAPI application context, utilizing the Raspberry Pi's CPU architecture.
-- **Working Principle:** For every frame, the engine runs a highly optimized `dlib` ResNet network to detect faces and compute a 128-dimensional mathematical embedding. It calculates the Euclidean distance against enrolled embeddings stored in PostgreSQL to identify students. Simultaneously, it runs a quantized `YOLOv8 Nano` model strictly to count the total number of human heads in the frame, alerting the teacher if the number of automatically recognized faces does not match the physical head count (preventing proxy attendance).
-- **Subcomponents:**
-  - **Face Embedder (`dlib`):** Extracts 128D vectors from cropped face images.
-  - **YOLOv8 Head Counter:** A lightweight neural network specifically fine-tuned for crowd counting.
-  - **MJPEG Streaming Engine:** Captures raw `cv2` frames, overlays bounding boxes and annotations, and encodes them into JPEG byte streams for the frontend.
-
-#### 5. Hardware Biometrics Service (R307 Sensor)
-- **Role:** A robust, un-spoofable fallback mechanism for students whose faces cannot be confidently recognized (due to poor lighting, masks, or occlusions).
-- **Interconnection:** Wired directly to the Raspberry Pi's GPIO pins, communicating via the UART serial protocol.
-- **Working Principle:** A dedicated Python serial manager listens for commands from the backend. When a teacher clicks "Verify Fingerprint" on the dashboard, the backend sends a hex instruction payload over UART. The R307 sensor illuminates, scans the finger, performs an onboard hardware search against its internal memory, and returns a success/fail payload over UART back to the backend.
-- **Subcomponents:**
-  - **UART Serial Driver:** Handles the low-level byte communication via `/dev/ttyS0` or `/dev/serial0`.
-  - **Mock Mode Fallback:** Automatically spins up a software simulator if the physical sensor is disconnected, preventing the backend from crashing during development.
-
-#### 6. Database Layer (PostgreSQL 16)
+#### 4. Database Layer (PostgreSQL 16)
 - **Role:** The persistent relational storage for users, courses, attendance logs, and biometric data.
 - **Working Principle:** Interfaced via the `SQLAlchemy` ORM. The 128D face embeddings are stored efficiently as float arrays. The schema is highly normalized with strict foreign-key constraints and cascading deletions (e.g., deleting a course automatically purges all orphaned attendance sessions and student enrollments tied to it).
 - **Subcomponents:**
   - **Alembic Migrations:** Manages database schema versioning and iterative updates.
   - **Async Session Engine:** Utilizes `asyncpg` to allow FastAPI to handle thousands of concurrent queries without blocking the event loop.
-
----
-
-## 📂 Project Structure
-
-```text
-ClassOS/
-├── ai_engine/              # Computer vision models (dlib ResNet, YOLOv8 head counter)
-├── attendance_engine/      # Core orchestration tying AI recognitions to DB attendance sessions
-├── backend/                # FastAPI application layer (REST endpoints, WebSockets, Auth)
-├── camera_service/         # Handles raw frame capture from USB Webcam and MJPEG encoding
-├── database/               # Database connection logic and Alembic migration scripts
-├── docker/                 # Dockerfiles used to containerize the different services
-├── docs/                   # Extended project documentation (ER Diagrams, API references)
-├── fingerprint_service/    # Hardware serial communication (UART) for the R307 sensor
-├── frontend/               # The React SPA built with Vite and Tailwind CSS
-├── models/                 # Shared SQLAlchemy ORM models defining the database schema
-├── nginx/                  # Reverse proxy configuration for routing traffic in production
-├── scripts/                # Utility and hardware testing scripts (seed_db.py, test_camera.py)
-└── docker-compose.yml      # Orchestrates all containers (Frontend, Backend, DB, Nginx)
-```
 
 ---
 
@@ -254,7 +223,14 @@ flowchart TD
     N -- Valid Scan --> H
 ```
 
-### Recognition Thresholds
+### 🧠 The AI Models
+
+ClassOS uses a dual-model approach to ensure extremely high accuracy without bogging down the Raspberry Pi's CPU.
+
+1. **Face Embedding (dlib / ResNet):** When a student is enrolled, ClassOS extracts a 128-dimensional embedding of their face using a ResNet network trained on 3 million faces. During a live session, the system calculates the Euclidean distance between the live camera face and the stored database embeddings to generate a confidence percentage.
+2. **Crowd Verification (YOLOv8 Nano):** Face recognition alone can miss students sitting far back or looking down. To prevent proxy attendance and ensure total accuracy, we run Ultralytics' YOLOv8-nano model in the background to count the total number of human heads in the frame. If the head count exceeds the recognized face count, the teacher is alerted.
+
+### 🎯 Recognition Thresholds
 
 | Confidence Score | Action Taken | Logging Method |
 |------------------|--------------|----------------|
@@ -264,9 +240,11 @@ flowchart TD
 
 ---
 
-## 🔌 Embedded Hardware Design
+## 🔌 Hardware Integration
 
 ClassOS requires direct hardware integration. The Raspberry Pi 5 orchestrates standard USB protocols alongside direct GPIO Serial Communication.
+
+### 💻 Embedded Hardware Design
 
 | Component | Model | Interface | Purpose |
 |-----------|-------|-----------|---------|
@@ -274,7 +252,7 @@ ClassOS requires direct hardware integration. The Raspberry Pi 5 orchestrates st
 | Camera | UVC-compatible Webcam | USB 3.0 | Realtime video capture |
 | Biometric | R307 Optical Sensor | UART (GPIO) | Identity fallback verification |
 
-### R307 UART Wiring Guide
+### 📟 R307 Wiring Guide
 
 | R307 Pin | Pi 5 GPIO Pin | Wire Color |
 |----------|---------------|------------|
@@ -287,19 +265,17 @@ ClassOS requires direct hardware integration. The Raspberry Pi 5 orchestrates st
 
 ---
 
-## 💻 Web Dashboard & Analytics
+## 🖥️ User Experience & Dashboard
 
 The frontend is a beautifully designed SPA (Single Page Application) built with **React, Vite, and Tailwind CSS**. 
 
-**Dashboard Capabilities:**
+**Web Dashboard & Analytics Capabilities:**
 - **Live Attendance View:** Watch the AI draw bounding boxes over the classroom in real time while a live-updating roster syncs beside it.
 - **Analytics & History:** View historical session logs, overall attendance rates, and visualize pie charts differentiating face vs fingerprint authentications.
 - **CSV Data Export:** Generate downloadable `.csv` spreadsheets of session data with a single click.
 - **Face/Fingerprint Enrollment:** Admins can securely enroll new students directly from the browser using the Pi's connected hardware.
 
----
-
-## 📖 Step-by-Step Usage Guide
+### 📖 Step-by-Step Usage Guide
 
 1. **Student Account Creation & Management:** 
    - An Admin navigates to the **Students** tab and clicks "Add Student".
@@ -324,15 +300,17 @@ The frontend is a beautifully designed SPA (Single Page Application) built with 
 
 ---
 
-## ⚡ Quick Start Deployment
+## ⚡ Getting Started
+
+### 🚀 Quick Start Deployment
 
 Deploying the entire infrastructure is done with a single Docker command.
 
-### Prerequisites
+**Prerequisites**
 - Docker Engine & Docker Compose
 - Raspberry Pi 5 running 64-bit Debian/Ubuntu
 
-### Installation
+**Installation**
 
 ```bash
 # 1. Clone the repository
@@ -349,17 +327,15 @@ docker compose up -d --build
 open http://<YOUR_PI_IP_ADDRESS>:5173
 ```
 
-### Default Admin Credentials
+**Default Admin Credentials**
 - **Email:** `admin@classos.local`
 - **Password:** `changeme123` *(Change this immediately!)*
 
----
-
-## 🛠️ Development Setup
+### 🛠️ Development Setup
 
 If you wish to run the app outside of Docker for development:
 
-### Backend
+**Backend**
 ```bash
 python3.11 -m venv venv
 source venv/bin/activate
@@ -368,7 +344,7 @@ python -m scripts.seed_db
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend
+**Frontend**
 ```bash
 cd frontend
 npm install
@@ -386,6 +362,19 @@ npm run dev
 
 ---
 
+## 📚 Extended Documentation
+
+For deeper technical dives, please refer to the dedicated documentation files:
+
+- 📊 **[Database ER Diagram (ER_DIAGRAM.md)](docs/ER_DIAGRAM.md)**
+- 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
+- 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
+- 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
+- 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
+- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**  
+
+---
+
 ## 🗺️ Future Roadmap
 
 - [ ] **Offline Resilience:** Cache attendance data locally on the Raspberry Pi if the Wi-Fi drops and auto-sync when connection is restored.
@@ -400,17 +389,13 @@ npm run dev
 
 ---
 
-## 📚 Extended Documentation
+## 👨‍💻 Developers
 
-For deeper technical dives, please refer to the dedicated documentation files:
+**Abir Hasan Arko**  
+🐙 [GitHub](https://github.com/AbirHasanArko) | 💼 [LinkedIn](https://www.linkedin.com/in/abirhasanarko/)
 
-- 📊 **[Database ER Diagram (ER_DIAGRAM.md)](docs/ER_DIAGRAM.md)**
-- 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
-- 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
-- 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
-- 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
-- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**  
-
+**Md Shomik Shahriar**  
+🐙 [GitHub](https://github.com/Hapi-Guy) | 💼 [LinkedIn](https://www.linkedin.com/in/shomik101001/)
 
 ---
 
