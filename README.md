@@ -162,28 +162,76 @@ graph TD
 #### 1. The Edge Server (Raspberry Pi 5)
 - **Role:** The central computing hub that runs the entire software stack. By acting as an edge node, it guarantees sub-second latency for heavy AI inferencing without relying on external cloud servers or active internet connections.
 - **Interconnection:** Connects to the local network to serve the React frontend to teacher/student devices, interfaces with the R307 biometric sensor via low-level GPIO/UART pins, and reads raw video frames from the USB webcam.
+- **Subcomponents:**
+  - **OS Level Daemon:** Manages USB drivers for the webcam and UART configuration.
+  - **Docker Engine:** Orchestrates the PostgreSQL, FastAPI backend, and Nginx reverse proxy containers.
 
 #### 2. Frontend Dashboard (React + Vite)
 - **Role:** A modern, responsive Single Page Application (SPA) serving tailored experiences for Admins, Teachers, and Students.
 - **Working Principle:** The frontend uses standard REST HTTP requests (`axios`) for CRUD operations, course management, and historical data analytics. During live attendance sessions, it establishes a persistent **WebSocket** connection to the backend to receive real-time JSON payloads (e.g., `face_recognized`, `head_count_mismatch`), avoiding the latency of HTTP polling. It also reads a continuous `multipart/x-mixed-replace` HTTP response to render the live MJPEG camera feed directly in the browser.
+- **Subcomponents:**
+  - **React Router:** Manages client-side navigation between views.
+  - **Context API (AuthContext):** Manages global authentication state, token storage, and Role-Based Access Control (RBAC) to selectively render UI elements.
+  - **Axios Interceptors:** Automatically attaches JWT tokens to outgoing requests and handles automatic token refreshing upon expiration.
+  - **Chart.js Wrappers:** Renders visual analytics and attendance pie/bar charts.
 
 #### 3. Backend Orchestrator (FastAPI)
 - **Role:** The highly-concurrent core application layer that bridges the database, the frontend WebSockets, and the background AI models.
 - **Working Principle:** Written in asynchronous Python, FastAPI exposes JWT-secured REST endpoints. When a teacher initiates an attendance session, FastAPI spawns a background hardware thread. This thread continuously pulls frames from the camera, feeds them to the AI models, and uses an asynchronous `BroadcastManager` to push real-time event alerts directly to the connected frontend clients.
+- **Subcomponents:**
+  - **JWT Middleware:** Verifies tokens and extracts user roles for endpoint protection.
+  - **ConnectionManager:** Maintains active WebSocket connections and handles disconnects/reconnects without dropping live session states.
+  - **Pydantic Schemas:** Enforces strict data validation and serialization for all incoming and outgoing API traffic.
 
 #### 4. AI & Computer Vision Service
 - **Role:** Processes raw video frames into actionable attendance and security data.
 - **Interconnection:** Runs locally within the FastAPI application context, utilizing the Raspberry Pi's CPU architecture.
 - **Working Principle:** For every frame, the engine runs a highly optimized `dlib` ResNet network to detect faces and compute a 128-dimensional mathematical embedding. It calculates the Euclidean distance against enrolled embeddings stored in PostgreSQL to identify students. Simultaneously, it runs a quantized `YOLOv8 Nano` model strictly to count the total number of human heads in the frame, alerting the teacher if the number of automatically recognized faces does not match the physical head count (preventing proxy attendance).
+- **Subcomponents:**
+  - **Face Embedder (`dlib`):** Extracts 128D vectors from cropped face images.
+  - **YOLOv8 Head Counter:** A lightweight neural network specifically fine-tuned for crowd counting.
+  - **MJPEG Streaming Engine:** Captures raw `cv2` frames, overlays bounding boxes and annotations, and encodes them into JPEG byte streams for the frontend.
 
 #### 5. Hardware Biometrics Service (R307 Sensor)
 - **Role:** A robust, un-spoofable fallback mechanism for students whose faces cannot be confidently recognized (due to poor lighting, masks, or occlusions).
 - **Interconnection:** Wired directly to the Raspberry Pi's GPIO pins, communicating via the UART serial protocol.
 - **Working Principle:** A dedicated Python serial manager listens for commands from the backend. When a teacher clicks "Verify Fingerprint" on the dashboard, the backend sends a hex instruction payload over UART. The R307 sensor illuminates, scans the finger, performs an onboard hardware search against its internal memory, and returns a success/fail payload over UART back to the backend.
+- **Subcomponents:**
+  - **UART Serial Driver:** Handles the low-level byte communication via `/dev/ttyS0` or `/dev/serial0`.
+  - **Mock Mode Fallback:** Automatically spins up a software simulator if the physical sensor is disconnected, preventing the backend from crashing during development.
 
 #### 6. Database Layer (PostgreSQL 16)
 - **Role:** The persistent relational storage for users, courses, attendance logs, and biometric data.
 - **Working Principle:** Interfaced via the `SQLAlchemy` ORM. The 128D face embeddings are stored efficiently as float arrays. The schema is highly normalized with strict foreign-key constraints and cascading deletions (e.g., deleting a course automatically purges all orphaned attendance sessions and student enrollments tied to it).
+- **Subcomponents:**
+  - **Alembic Migrations:** Manages database schema versioning and iterative updates.
+  - **Async Session Engine:** Utilizes `asyncpg` to allow FastAPI to handle thousands of concurrent queries without blocking the event loop.
+
+---
+
+## 📂 Project Structure
+
+```text
+ClassOS/
+├── backend/                # The FastAPI backend application
+│   ├── main.py             # Application entry point and setup
+│   ├── routers/            # HTTP and WebSocket API endpoints
+│   ├── schemas/            # Pydantic models for request/response validation
+│   ├── services/           # Core business logic (AI, fingerprint, streaming)
+│   ├── dependencies.py     # Dependency injections (Auth checking, DB sessions)
+│   └── requirements.txt    # Python dependencies
+├── frontend/               # The React SPA (Vite)
+│   ├── src/
+│   │   ├── api/            # Axios API clients for backend communication
+│   │   ├── components/     # Reusable UI components (buttons, modals, charts)
+│   │   ├── contexts/       # Global state management (AuthContext)
+│   │   └── pages/          # Full page views (Dashboard, Attendance, etc.)
+├── models/                 # Shared SQLAlchemy ORM models defining the database schema
+├── docs/                   # Extended project documentation (ER Diagram, API refs)
+├── scripts/                # Utility scripts (e.g., database seeding)
+├── nginx/                  # Reverse proxy configuration for production deployment
+└── docker-compose.yml      # Orchestrates the containers (Frontend, Backend, DB, Nginx)
+```
 
 ---
 
