@@ -25,6 +25,11 @@ export const selfEnrollCourse = async (courseId) => {
   return response.data;
 };
 
+export const selfUnenrollCourse = async (courseId) => {
+  const response = await client.delete(`/students/me/courses/${courseId}/enroll`);
+  return response.data;
+};
+
 export const updateStudent = async (studentId, studentData) => {
   const response = await client.put(`/students/${studentId}`, studentData);
   return response.data;

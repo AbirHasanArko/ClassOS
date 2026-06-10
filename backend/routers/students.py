@@ -281,3 +281,27 @@ async def self_enroll_course(
         raise HTTPException(status_code=400, detail="Already enrolled in this course")
 
     return {"message": f"Successfully enrolled in {course.course_code}"}
+
+@router.delete("/me/courses/{course_id}/enroll", status_code=status.HTTP_204_NO_CONTENT)
+async def self_unenroll_course(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.STUDENT]))
+):
+    from models.enrollment import Enrollment
+    from sqlalchemy import delete
+
+    student_id = current_user.student_profile.id
+
+    result = await db.execute(
+        delete(Enrollment).where(
+            Enrollment.course_id == course_id,
+            Enrollment.student_id == student_id
+        )
+    )
+    
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Not enrolled in this course")
+        
+    await db.commit()
+    return None

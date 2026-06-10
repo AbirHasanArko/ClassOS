@@ -2,31 +2,39 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getCourses } from '../api/courses';
-import { selfEnrollCourse } from '../api/students';
-import { BookOpen, UserPlus } from 'lucide-react';
+import { selfEnrollCourse, selfUnenrollCourse, getMyAttendance } from '../api/students';
+import { BookOpen, UserPlus, UserMinus } from 'lucide-react';
 
 export const StudentCoursesPage = () => {
   const [courses, setCourses] = useState([]);
-  const [enrollingId, setEnrollingId] = useState(null);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState(new Set());
+  const [loadingId, setLoadingId] = useState(null);
 
-  const fetchCourses = async () => {
+  const fetchData = async () => {
     try {
-      const data = await getCourses();
-      setCourses(data.items || []);
+      const [allCourses, attendanceData] = await Promise.all([
+        getCourses(),
+        getMyAttendance()
+      ]);
+      setCourses(allCourses.items || []);
+      
+      const enrolledIds = new Set(attendanceData.courses.map(c => c.course_id));
+      setEnrolledCourseIds(enrolledIds);
     } catch (err) {
-      console.error('Failed to fetch courses', err);
+      console.error('Failed to fetch data', err);
     }
   };
 
   useEffect(() => {
-    fetchCourses();
+    fetchData();
   }, []);
 
   const handleEnroll = async (courseId) => {
-    setEnrollingId(courseId);
+    setLoadingId(courseId);
     try {
       const res = await selfEnrollCourse(courseId);
       alert(res.message);
+      fetchData(); // Refresh enrolled status
     } catch (err) {
       console.error('Failed to enroll', err);
       if (err.response?.data?.detail) {
@@ -35,7 +43,23 @@ export const StudentCoursesPage = () => {
         alert('Failed to enroll in course. You might already be enrolled.');
       }
     } finally {
-      setEnrollingId(null);
+      setLoadingId(null);
+    }
+  };
+
+  const handleUnenroll = async (courseId) => {
+    if (!confirm('Are you sure you want to unenroll from this course? This will remove all your attendance data for this course.')) return;
+    
+    setLoadingId(courseId);
+    try {
+      await selfUnenrollCourse(courseId);
+      alert('Successfully unenrolled from course.');
+      fetchData(); // Refresh enrolled status
+    } catch (err) {
+      console.error('Failed to unenroll', err);
+      alert('Failed to unenroll from course.');
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -62,16 +86,29 @@ export const StudentCoursesPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">{course.schedule || 'No schedule set'}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => handleEnroll(course.id)}
-                disabled={enrollingId === course.id}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                {enrollingId === course.id ? 'Enrolling...' : 'Enroll'}
-              </Button>
+              {enrolledCourseIds.has(course.id) ? (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => handleUnenroll(course.id)}
+                  disabled={loadingId === course.id}
+                >
+                  <UserMinus className="h-4 w-4 mr-2" />
+                  {loadingId === course.id ? 'Processing...' : 'Unenroll'}
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => handleEnroll(course.id)}
+                  disabled={loadingId === course.id}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {loadingId === course.id ? 'Processing...' : 'Enroll'}
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
