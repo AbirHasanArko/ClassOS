@@ -59,6 +59,22 @@ Invalidate session (client discards token).
 
 ---
 
+## Users
+
+### `GET /users/` 🔒 (Admin)
+List all system users (Teachers and Admins).
+
+### `POST /users/` 🔒 (Admin)
+Create a new user.
+
+### `PUT /users/{user_id}` 🔒 (Admin)
+Update user details or password.
+
+### `DELETE /users/{user_id}` 🔒 (Admin)
+Delete a user.
+
+---
+
 ## Students
 
 ### `GET /students/` 🔒
@@ -81,6 +97,12 @@ Create a new student.
 
 ### `GET /students/{student_id}` 🔒
 Get student details by UUID.
+
+### `PUT /students/{student_id}` 🔒 (Admin/Teacher)
+Update a student's profile information.
+
+### `DELETE /students/{student_id}` 🔒 (Admin/Teacher)
+Delete a student and all their associated data, enrollments, and biometrics.
 
 ---
 
@@ -147,6 +169,12 @@ Create a course.
 }
 ```
 
+### `PUT /courses/{course_id}` 🔒 (Admin/Teacher)
+Update course details.
+
+### `DELETE /courses/{course_id}` 🔒 (Admin/Teacher)
+Delete a course. Cascades and removes all attendance sessions and enrollments associated with it.
+
 ### `POST /courses/{course_id}/enroll` 🔒 (Admin/Teacher)
 Enroll students in a course.
 
@@ -156,6 +184,12 @@ Enroll students in a course.
   "student_ids": ["uuid1", "uuid2"]
 }
 ```
+
+### `POST /students/me/courses/{course_id}/enroll` 🔒 (Student)
+Self-enroll into a course.
+
+### `DELETE /students/me/courses/{course_id}/enroll` 🔒 (Student)
+Self-unenroll from a course.
 
 ---
 

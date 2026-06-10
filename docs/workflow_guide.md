@@ -6,15 +6,17 @@ This document outlines the end-to-end workflow for setting up and running daily 
 
 Before any classes begin, the system administrator or teacher must enroll students and configure the courses.
 
-### Step 1.1: Create a Course
+### Step 1.1: Manage Courses
 1. Navigate to the **Courses** page in the dashboard.
 2. Click **Add Course** to create a new course.
 3. Provide the Course Code (e.g., `CS101`) and Course Name (e.g., `Intro to Computer Science`).
+4. You can also **Edit** a course's name and schedule or **Delete** it entirely using the action buttons on the course card.
 
-### Step 1.2: Register Students
+### Step 1.2: Manage Students
 1. Navigate to the **Students** page in the dashboard.
 2. Click **Add Student** and fill in the details (Student ID, First Name, Last Name, Email).
 3. The student will appear in the system roster, but will have a "Not Set" status for Face and Fingerprint data.
+4. You can also **Edit** a student's profile or **Delete** them using the action buttons on the right.
 
 ### Step 1.3: Enroll Biometrics
 For each student, you must register their biometrics so the AI can identify them:
@@ -39,7 +41,8 @@ Before taking attendance, students must be explicitly enrolled into the course t
 1. Navigate to the **Courses** page in the dashboard.
 2. Click the **Manage Students** button next to the relevant course.
 3. A modal will appear listing all students in the system. Check the boxes next to the students who should be enrolled.
-4. Click **Save Changes**.
+4. To **un-enroll** a student, simply uncheck their box.
+5. Click **Save Changes**.
 
 **Method B (Student Self-Enrollment):**
 See Section 3 for the student workflow.
@@ -110,6 +113,7 @@ Instead of relying on the admin, students can upload their own face data:
 1. Navigate to the **Available Courses** page.
 2. The student will see all courses created by the teachers.
 3. The student clicks the **Enroll** button on the course they are taking.
+4. If already enrolled, the student can click the red **Unenroll** button to remove themselves from the course.
 
 ### Step 3.4: Tracking Attendance
 1. Navigate to the **My Attendance** page.
