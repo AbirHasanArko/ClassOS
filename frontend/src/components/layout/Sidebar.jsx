@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, BookOpen, BarChart3, Settings, LogOut, CheckSquare, Info } from 'lucide-react';
+import { Home, Users, BookOpen, BarChart3, Settings, LogOut, CheckSquare, Info, ScanFace } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../ui/Button';
 
@@ -10,8 +10,11 @@ export const Sidebar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/', icon: Home, roles: ['admin', 'teacher', 'student'] },
     { name: 'Attendance', path: '/attendance', icon: CheckSquare, roles: ['admin', 'teacher'] },
+    { name: 'My Attendance', path: '/my-attendance', icon: CheckSquare, roles: ['student'] },
     { name: 'Students', path: '/students', icon: Users, roles: ['admin', 'teacher'] },
-    { name: 'Courses', path: '/courses', icon: BookOpen, roles: ['admin', 'teacher', 'student'] },
+    { name: 'Courses', path: '/courses', icon: BookOpen, roles: ['admin', 'teacher'] },
+    { name: 'Available Courses', path: '/student-courses', icon: BookOpen, roles: ['student'] },
+    { name: 'Face Enrollment', path: '/face-registration', icon: ScanFace, roles: ['student'] },
     { name: 'Analytics', path: '/analytics', icon: BarChart3, roles: ['admin', 'teacher'] },
     { name: 'Users', path: '/users', icon: Users, roles: ['admin'] },
     { name: 'Settings', path: '/settings', icon: Settings, roles: ['admin', 'teacher', 'student'] },

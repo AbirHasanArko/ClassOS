@@ -44,12 +44,16 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Extract name based on profile
     name = "User"
+    profile_id = None
     if user.admin_profile:
         name = user.admin_profile.full_name
+        profile_id = str(user.admin_profile.id)
     elif user.teacher_profile:
         name = user.teacher_profile.full_name
+        profile_id = str(user.teacher_profile.id)
     elif user.student_profile:
         name = user.student_profile.full_name
+        profile_id = str(user.student_profile.id)
 
     # Create token payload
     token_data = {
@@ -66,6 +70,7 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         refresh_token=refresh_token,
         user={
             "id": str(user.id),
+            "profile_id": profile_id,
             "email": user.email,
             "role": user.role.value,
             "name": name,
@@ -102,12 +107,16 @@ async def refresh_token(request: RefreshRequest, db: AsyncSession = Depends(get_
         )
 
     name = "User"
+    profile_id = None
     if user.admin_profile:
         name = user.admin_profile.full_name
+        profile_id = str(user.admin_profile.id)
     elif user.teacher_profile:
         name = user.teacher_profile.full_name
+        profile_id = str(user.teacher_profile.id)
     elif user.student_profile:
         name = user.student_profile.full_name
+        profile_id = str(user.student_profile.id)
 
     token_data = {
         "sub": str(user.id),
@@ -123,6 +132,7 @@ async def refresh_token(request: RefreshRequest, db: AsyncSession = Depends(get_
         refresh_token=new_refresh_token,
         user={
             "id": str(user.id),
+            "profile_id": profile_id,
             "email": user.email,
             "role": user.role.value,
             "name": name,

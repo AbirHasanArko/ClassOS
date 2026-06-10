@@ -12,6 +12,9 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AboutPage } from './pages/AboutPage';
+import { StudentFaceRegistration } from './pages/StudentFaceRegistration';
+import { StudentCoursesPage } from './pages/StudentCoursesPage';
+import { StudentAttendancePage } from './pages/StudentAttendancePage';
 
 function App() {
   return (
@@ -33,6 +36,11 @@ function App() {
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                
+                {/* Student Specific Routes */}
+                <Route path="/face-registration" element={<StudentFaceRegistration />} />
+                <Route path="/student-courses" element={<StudentCoursesPage />} />
+                <Route path="/my-attendance" element={<StudentAttendancePage />} />
               </Route>
 
               {/* Fallback */}

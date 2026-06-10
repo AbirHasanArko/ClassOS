@@ -33,6 +33,10 @@ async def get_face_status(
     current_user: User = Depends(get_current_user),
 ):
     """Get a student's face registration status and sample count."""
+    if current_user.role == UserRole.STUDENT:
+        if not current_user.student_profile or current_user.student_profile.id != student_id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this face data")
+
     student = await _get_student_or_404(db, student_id)
 
     stmt = (
@@ -61,8 +65,9 @@ async def upload_face_images(
     student_id: UUID,
     files: list[UploadFile] = File(..., description="One or more face images (jpg/png)"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER])),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT])),
 ):
+
     """
     Upload face images for a student.
 
@@ -71,6 +76,10 @@ async def upload_face_images(
     Once at least one sample exists the student is marked as face-registered.
     Up to ``FACE_SAMPLES_PER_STUDENT`` (default 20) samples are allowed.
     """
+    if current_user.role == UserRole.STUDENT:
+        if not current_user.student_profile or current_user.student_profile.id != student_id:
+            raise HTTPException(status_code=403, detail="Not authorized to upload to this face profile")
+
     student = await _get_student_or_404(db, student_id)
 
     # How many samples already exist?
@@ -176,7 +185,7 @@ async def upload_face_images(
 async def delete_face_data(
     student_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER])),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT])),
 ):
     """
     Delete all face embeddings and images for a student.
@@ -184,6 +193,10 @@ async def delete_face_data(
     This resets the student's face registration so new samples can be
     uploaded. Useful when a student's appearance has changed significantly.
     """
+    if current_user.role == UserRole.STUDENT:
+        if not current_user.student_profile or current_user.student_profile.id != student_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this face data")
+
     student = await _get_student_or_404(db, student_id)
 
     # Fetch and delete embeddings from DB

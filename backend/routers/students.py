@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.dependencies import get_db, get_current_user, require_role
-from backend.schemas.student import StudentCreate, StudentUpdate, StudentOut, StudentList
+from backend.schemas.student import StudentCreate, StudentUpdate, StudentOut, StudentList, StudentAttendanceStatsOut
 from models.user import User, UserRole
 from models.student import Student
 from backend.auth.password import get_password_hash
@@ -138,3 +138,82 @@ async def get_student(
         "face_registered": student.face_registered,
         "fingerprint_registered": student.fingerprint_registered
     }
+
+@router.get("/me/attendance", response_model=StudentAttendanceStatsOut)
+async def get_my_attendance(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.STUDENT]))
+):
+    from models.course import Course
+    from models.enrollment import Enrollment
+    from models.attendance_session import AttendanceSession, SessionStatus
+    from models.attendance import Attendance, AttendanceStatus
+
+    student_id = current_user.student_profile.id
+
+    # 1. Get enrolled courses
+    stmt = select(Course).join(Enrollment, Course.id == Enrollment.course_id).where(Enrollment.student_id == student_id)
+    result = await db.execute(stmt)
+    courses = result.scalars().all()
+
+    course_stats = []
+    for course in courses:
+        # 2. Get total sessions for the course
+        sess_stmt = select(func.count()).select_from(AttendanceSession).where(AttendanceSession.course_id == course.id)
+        sess_result = await db.execute(sess_stmt)
+        total_sessions = sess_result.scalar_one()
+
+        # 3. Get present sessions for this student in this course
+        att_stmt = select(func.count()).select_from(Attendance).join(AttendanceSession, Attendance.session_id == AttendanceSession.id).where(
+            AttendanceSession.course_id == course.id,
+            Attendance.student_id == student_id,
+            Attendance.status == AttendanceStatus.PRESENT
+        )
+        att_result = await db.execute(att_stmt)
+        present_sessions = att_result.scalar_one()
+
+        percentage = 0.0
+        if total_sessions > 0:
+            percentage = (present_sessions / total_sessions) * 100.0
+
+        course_stats.append({
+            "course_id": course.id,
+            "course_code": course.course_code,
+            "course_name": course.course_name,
+            "total_sessions": total_sessions,
+            "present_sessions": present_sessions,
+            "attendance_percentage": percentage
+        })
+
+    return {
+        "student_id": student_id,
+        "courses": course_stats
+    }
+
+@router.post("/me/courses/{course_id}/enroll", status_code=status.HTTP_200_OK)
+async def self_enroll_course(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.STUDENT]))
+):
+    from models.course import Course
+    from models.enrollment import Enrollment
+    from sqlalchemy.exc import IntegrityError
+
+    student_id = current_user.student_profile.id
+
+    # Verify course exists
+    result = await db.execute(select(Course).where(Course.id == course_id))
+    course = result.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    try:
+        enrollment = Enrollment(course_id=course_id, student_id=student_id)
+        db.add(enrollment)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Already enrolled in this course")
+
+    return {"message": f"Successfully enrolled in {course.course_code}"}

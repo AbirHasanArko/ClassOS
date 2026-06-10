@@ -30,3 +30,15 @@ class StudentList(BaseModel):
     total: int
     page: int
     size: int
+
+class StudentCourseAttendance(BaseModel):
+    course_id: UUID
+    course_code: str
+    course_name: str
+    total_sessions: int
+    present_sessions: int
+    attendance_percentage: float
+
+class StudentAttendanceStatsOut(BaseModel):
+    student_id: UUID
+    courses: List[StudentCourseAttendance]

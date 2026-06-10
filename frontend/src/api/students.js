@@ -14,3 +14,13 @@ export const getStudent = async (id) => {
   const response = await client.get(`/students/${id}`);
   return response.data;
 };
+
+export const getMyAttendance = async () => {
+  const response = await client.get('/students/me/attendance');
+  return response.data;
+};
+
+export const selfEnrollCourse = async (courseId) => {
+  const response = await client.post(`/students/me/courses/${courseId}/enroll`);
+  return response.data;
+};
