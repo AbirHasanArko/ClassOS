@@ -230,18 +230,23 @@ The frontend is a beautifully designed SPA (Single Page Application) built with 
 
 ## 📖 Step-by-Step Usage Guide
 
-1. **Student Enrollment:** 
+1. **Student Account Creation:** 
    - An Admin navigates to the **Students** tab and clicks "Add Student".
-   - The admin inputs the student's ID and Name.
-   - The system triggers the webcam. The student looks at the camera, and ClassOS extracts and saves their facial embedding.
-   - (Optional) The admin clicks "Enroll Fingerprint", prompting the student to press their finger against the R307 sensor twice.
-2. **Course Creation:**
-   - The teacher creates a new Course (e.g., "CS101") and selects which students are enrolled in that class.
-3. **Running a Session:**
+   - The admin inputs the student's ID, Name, and Email. This creates a student profile and a login account (default password: `student123`).
+2. **Student Self-Service (Optional but recommended):**
+   - Students can log in to their own portal.
+   - From the **Face Enrollment** tab, students can use their webcam or upload photos to register their facial data.
+   - From the **Available Courses** tab, students can enroll themselves into the classes they are taking.
+   - From the **My Attendance** tab, students can monitor their attendance records and percentages.
+3. **Admin/Teacher Course Configuration:**
+   - The teacher creates a new Course (e.g., "CS101").
+   - If students haven't self-enrolled, the teacher can manually select which students are enrolled in that class.
+   - Admins can also manually enroll biometrics using the physical hardware.
+4. **Running a Session:**
    - At the start of a lecture, the teacher logs into ClassOS, goes to the **Attendance** tab, and clicks "Start Session".
    - The Raspberry Pi immediately boots up the AI background thread, turns on the camera, and begins streaming the live MJPEG feed to the dashboard.
    - As students walk into the room, bounding boxes appear around their faces. Green boxes indicate they have been successfully logged in the database.
-4. **Exporting Data:**
+5. **Exporting Data:**
    - After class, the teacher clicks "End Session". They can then navigate to the **Analytics** tab to download a CSV of the exact time and method (Face vs Fingerprint) each student used to check in.
 
 ---

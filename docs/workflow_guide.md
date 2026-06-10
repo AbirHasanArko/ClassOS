@@ -34,11 +34,15 @@ For each student, you must register their biometrics so the AI can identify them
    *(Note: If the hardware sensor is disconnected, the system will fall back to "Mock Mode" and simulate a successful enrollment).*
 
 ### Step 1.4: Enroll Students into a Course
-Before taking attendance, students must be explicitly enrolled into the course they are taking:
+Before taking attendance, students must be explicitly enrolled into the course they are taking. This can be done in two ways:
+**Method A (Admin/Teacher):**
 1. Navigate to the **Courses** page in the dashboard.
 2. Click the **Manage Students** button next to the relevant course.
 3. A modal will appear listing all students in the system. Check the boxes next to the students who should be enrolled.
-4. Click **Save Changes**. Only enrolled students will appear on the attendance sheet for this course.
+4. Click **Save Changes**.
+
+**Method B (Student Self-Enrollment):**
+See Section 3 for the student workflow.
 
 ---
 
@@ -74,3 +78,33 @@ At any point during the session, the teacher can switch to the **Sheet** tab to 
 ### Step 2.5: End Session
 1. Once all students have arrived and the head count matches the recognized count, the teacher clicks **End Session**.
 2. The camera feed is turned off, and the attendance records for that session are permanently locked into the PostgreSQL database.
+
+---
+
+## 3. Student Workflow (Self-Service)
+
+Students have a dedicated portal where they can manage their own biometrics, courses, and view their attendance.
+
+### Step 3.1: Logging In
+1. The admin must have first created the student account.
+2. The student navigates to the login page and enters their email and password (default: `student123`).
+3. Upon logging in, the student is greeted by their personalized dashboard.
+
+### Step 3.2: Self-Service Face Enrollment
+Instead of relying on the admin, students can upload their own face data:
+1. Navigate to the **Face Enrollment** page.
+2. The student can check their current enrollment status (Registered / Not Registered).
+3. The student can choose to **Upload Files** (5-10 clear front-facing images) or **Use Webcam** to capture images directly.
+4. Click **Upload & Enroll**. The AI engine will extract their facial embeddings securely.
+5. If a student's appearance changes significantly, they can click **Delete Data** to reset their profile and re-upload new samples.
+
+### Step 3.3: Course Enrollment
+1. Navigate to the **Available Courses** page.
+2. The student will see all courses created by the teachers.
+3. The student clicks the **Enroll** button on the course they are taking.
+
+### Step 3.4: Tracking Attendance
+1. Navigate to the **My Attendance** page.
+2. The student will see a data table listing all their enrolled courses.
+3. For each course, the table displays the number of classes they were marked present, the total number of classes held, and their computed attendance percentage.
+4. The percentage is color-coded to easily identify if the student is falling behind the required attendance threshold.
