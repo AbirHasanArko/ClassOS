@@ -316,9 +316,14 @@ npm run dev
 
 ## 🗺️ Future Roadmap
 
+- [ ] **Offline Resilience:** Cache attendance data locally on the Raspberry Pi if the Wi-Fi drops and auto-sync when connection is restored.
+- [ ] **Biometric Data Encryption & Privacy:** Implement encryption at rest for biometric vectors and automated scripts to purge data for graduated students.
+- [ ] **Automated Notifications:** Email/SMS alerts for students when attendance drops below threshold, and weekly CSV reports for teachers.
+- [ ] **"At-Risk" Predictive Analytics:** Dashboard insights highlighting students with trending negative attendance patterns.
+- [ ] **Calendar Integrations:** Auto-start hardware sessions exactly when classes are scheduled in Google Calendar or Outlook.
+- [ ] **Teaching Assistant (TA) Role:** A new permission tier that can start/stop sessions without destructive capabilities.
+- [ ] **Progressive Web App (PWA):** Make the frontend installable natively on iOS/Android home screens.
 - [ ] **Multi-Camera Support:** Support for an array of RTSP IP cameras stationed around a large lecture hall.
-- [ ] **Mobile App:** A native iOS/Android application for teachers to start sessions from their phone.
-- [ ] **Automated Email Reports:** Send weekly attendance reports directly to students.
 - [ ] **RFID Integration:** Add a tertiary fallback mechanism using standard student RFID cards.
 
 ---
