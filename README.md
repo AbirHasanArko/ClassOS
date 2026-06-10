@@ -213,24 +213,19 @@ graph TD
 
 ```text
 ClassOS/
-├── backend/                # The FastAPI backend application
-│   ├── main.py             # Application entry point and setup
-│   ├── routers/            # HTTP and WebSocket API endpoints
-│   ├── schemas/            # Pydantic models for request/response validation
-│   ├── services/           # Core business logic (AI, fingerprint, streaming)
-│   ├── dependencies.py     # Dependency injections (Auth checking, DB sessions)
-│   └── requirements.txt    # Python dependencies
-├── frontend/               # The React SPA (Vite)
-│   ├── src/
-│   │   ├── api/            # Axios API clients for backend communication
-│   │   ├── components/     # Reusable UI components (buttons, modals, charts)
-│   │   ├── contexts/       # Global state management (AuthContext)
-│   │   └── pages/          # Full page views (Dashboard, Attendance, etc.)
+├── ai_engine/              # Computer vision models (dlib ResNet, YOLOv8 head counter)
+├── attendance_engine/      # Core orchestration tying AI recognitions to DB attendance sessions
+├── backend/                # FastAPI application layer (REST endpoints, WebSockets, Auth)
+├── camera_service/         # Handles raw frame capture from USB Webcam and MJPEG encoding
+├── database/               # Database connection logic and Alembic migration scripts
+├── docker/                 # Dockerfiles used to containerize the different services
+├── docs/                   # Extended project documentation (ER Diagrams, API references)
+├── fingerprint_service/    # Hardware serial communication (UART) for the R307 sensor
+├── frontend/               # The React SPA built with Vite and Tailwind CSS
 ├── models/                 # Shared SQLAlchemy ORM models defining the database schema
-├── docs/                   # Extended project documentation (ER Diagram, API refs)
-├── scripts/                # Utility scripts (e.g., database seeding)
-├── nginx/                  # Reverse proxy configuration for production deployment
-└── docker-compose.yml      # Orchestrates the containers (Frontend, Backend, DB, Nginx)
+├── nginx/                  # Reverse proxy configuration for routing traffic in production
+├── scripts/                # Utility and hardware testing scripts (seed_db.py, test_camera.py)
+└── docker-compose.yml      # Orchestrates all containers (Frontend, Backend, DB, Nginx)
 ```
 
 ---
