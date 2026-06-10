@@ -20,52 +20,30 @@
 ## 👨‍💻 Developers
 
 **Abir Hasan Arko**  
-📧 [abirhasanarko2004@gmail.com](mailto:abirhasanarko2004@gmail.com) | 🐙 [GitHub](https://github.com/AbirHasanArko) | 💼 [LinkedIn](https://www.linkedin.com/in/abirhasanarko/)
+🐙 [GitHub](https://github.com/AbirHasanArko) | 💼 [LinkedIn](https://www.linkedin.com/in/abirhasanarko/)
 
-**Md Shomik Shahriar** 
+**Md Shomik Shahriar**  
 🐙 [GitHub](https://github.com/Hapi-Guy) | 💼 [LinkedIn](https://www.linkedin.com/in/shomik101001/)
 
 ---
 
 ## 📑 Table of Contents
 
-- [🌟 Why ClassOS is One of a Kind](#-why-classos-is-one-of-a-kind)
-- [📚 Extended Documentation](#-extended-documentation)
-- [🚀 Core Features](#-core-features)
-- [🛠️ Technology Stack](#️-technology-stack)
-- [🧠 Deep Dive: The AI Models](#-deep-dive-the-ai-models)
-- [🏗️ System Architecture](#-system-architecture)
-- [🤖 AI & Logic Pipeline](#-ai--logic-pipeline)
-- [🔌 Embedded Hardware Design](#-embedded-hardware-design)
-- [💻 Web Dashboard & Analytics](#-web-dashboard--analytics)
-- [📖 Step-by-Step Usage Guide](#-step-by-step-usage-guide)
-- [⚡ Quick Start Deployment](#-quick-start-deployment)
-- [🛠️ Development Setup](#️-development-setup)
-- [🔒 Security & Privacy](#-security--privacy)
-- [🗺️ Future Roadmap](#️-future-roadmap)
-- [📝 License & Acknowledgments](#-license--acknowledgments)
-
----
-
-## 📚 Extended Documentation
-
-For deeper technical dives, please refer to the dedicated documentation files:
-
-- 📊 **[Database ER Diagram (ER_DIAGRAM.md)](docs/ER_DIAGRAM.md)**
-- 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
-- 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
-- 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
-- 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
-- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**
-
----
-
-## 🌟 Why ClassOS is One of a Kind
-
-Most automated attendance systems fall into two categories: cloud-dependent APIs that are slow and compromise student privacy, or fragile local scripts that lack a modern user interface. 
-
-**ClassOS bridges the gap by delivering a state-of-the-art enterprise architecture running entirely on the Edge.** 
-By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI inferencing locally, orchestrates low-level hardware serial communication (UART) for fingerprint fallback, and serves a beautiful, high-performance React dashboard to any device on the network—all without requiring an active internet connection. It is a complete, self-contained operating environment for the modern classroom.
+- [Core Features](#-core-features)
+- [Technology Stack](#️-technology-stack)
+- [Why ClassOS is One of a Kind](#-why-classos-is-one-of-a-kind)
+- [Deep Dive: The AI Models](#-deep-dive-the-ai-models)
+- [System Architecture](#-system-architecture)
+- [AI & Logic Pipeline](#-ai--logic-pipeline)
+- [Embedded Hardware Design](#-embedded-hardware-design)
+- [Web Dashboard & Analytics](#-web-dashboard--analytics)
+- [Step-by-Step Usage Guide](#-step-by-step-usage-guide)
+- [Quick Start Deployment](#-quick-start-deployment)
+- [Development Setup](#️-development-setup)
+- [Security & Privacy](#-security--privacy)
+- [Future Roadmap](#️-future-roadmap)
+- [Extended Documentation](#-extended-documentation)
+- [License & Acknowledgments](#-license--acknowledgments)
 
 ---
 
@@ -107,6 +85,15 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 - **Deployment:** Docker & Docker Compose
 - **Hardware:** Raspberry Pi 5
 - **Biometrics:** R307 Optical Fingerprint Sensor (via UART)
+
+---
+
+## 🌟 Why ClassOS is One of a Kind
+
+Most automated attendance systems fall into two categories: cloud-dependent APIs that are slow and compromise student privacy, or fragile local scripts that lack a modern user interface. 
+
+**ClassOS bridges the gap by delivering a state-of-the-art enterprise architecture running entirely on the Edge.** 
+By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI inferencing locally, orchestrates low-level hardware serial communication (UART) for fingerprint fallback, and serves a beautiful, high-performance React dashboard to any device on the network—all without requiring an active internet connection. It is a complete, self-contained operating environment for the modern classroom.
 
 ---
 
@@ -326,6 +313,20 @@ npm run dev
 - [ ] **Mobile App:** A native iOS/Android application for teachers to start sessions from their phone.
 - [ ] **Automated Email Reports:** Send weekly attendance reports directly to students.
 - [ ] **RFID Integration:** Add a tertiary fallback mechanism using standard student RFID cards.
+
+---
+
+## 📚 Extended Documentation
+
+For deeper technical dives, please refer to the dedicated documentation files:
+
+- 📊 **[Database ER Diagram (ER_DIAGRAM.md)](docs/ER_DIAGRAM.md)**
+- 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
+- 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
+- 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
+- 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
+- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**  
+
 
 ---
 
