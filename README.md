@@ -49,7 +49,7 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 - [Security & Privacy](#-security--privacy)
 - [Extended Documentation](#-extended-documentation)
 - [Future Roadmap](#️-future-roadmap)
-- [Developers](#-developers)
+- [Developers](#developers)
 - [License & Acknowledgments](#-license--acknowledgments)
 
 ---
@@ -389,7 +389,7 @@ For deeper technical dives, please refer to the dedicated documentation files:
 
 ---
 
-## 👨‍💻 Developers
+## <a id="developers"></a>👨‍💻 Developers
 
 **Abir Hasan Arko**  
 🐙 [GitHub](https://github.com/AbirHasanArko) | 💼 [LinkedIn](https://www.linkedin.com/in/abirhasanarko/)
