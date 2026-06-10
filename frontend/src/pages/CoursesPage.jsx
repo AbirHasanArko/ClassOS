@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { getCourses, createCourse, enrollStudents, getCourseStudents } from '../api/courses';
+import { getCourses, createCourse, enrollStudents, getCourseStudents, updateCourse, deleteCourse } from '../api/courses';
 import { getStudents } from '../api/students';
 import { getCourseReport, downloadCourseReportCsv } from '../api/analytics';
-import { BookOpen, Plus, Users, CheckSquare, Square, X, FileSpreadsheet, FileBarChart } from 'lucide-react';
+import { BookOpen, Plus, Users, CheckSquare, Square, X, FileSpreadsheet, FileBarChart, Pencil, Trash } from 'lucide-react';
 
 export const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -25,6 +25,11 @@ export const CoursesPage = () => {
   const [reportData, setReportData] = useState(null);
   const [isDownloadingReport, setIsDownloadingReport] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
+
+  // Edit/Delete State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editCourseData, setEditCourseData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCourses = async () => {
     try {
@@ -122,6 +127,36 @@ export const CoursesPage = () => {
     }
   };
 
+  const handleOpenEditModal = (course) => {
+    setEditCourseData({ ...course });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditCourse = async (e) => {
+    e.preventDefault();
+    try {
+      await updateCourse(editCourseData.id, editCourseData);
+      setShowEditModal(false);
+      fetchCourses();
+    } catch (err) {
+      console.error('Failed to update course', err);
+    }
+  };
+
+  const handleDeleteCourse = async (course) => {
+    if (confirm(`Are you sure you want to delete ${course.course_code} - ${course.course_name}? This will delete all associated enrollments and sessions.`)) {
+      setIsDeleting(true);
+      try {
+        await deleteCourse(course.id);
+        fetchCourses();
+      } catch (err) {
+        console.error('Failed to delete course', err);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -144,7 +179,17 @@ export const CoursesPage = () => {
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                   <BookOpen className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-xs font-mono bg-muted px-2 py-1 rounded">{course.course_code}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono bg-muted px-2 py-1 rounded">{course.course_code}</span>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleOpenEditModal(course); }}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30" onClick={(e) => { e.stopPropagation(); handleDeleteCourse(course); }} disabled={isDeleting}>
+                      <Trash className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
               </div>
               <CardTitle className="text-lg mt-3">{course.course_name}</CardTitle>
             </CardHeader>
@@ -224,6 +269,52 @@ export const CoursesPage = () => {
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" type="button" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit">Create Course</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Course Modal */}
+      {showEditModal && editCourseData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader>
+              <CardTitle>Edit Course</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveEditCourse} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Course Code</label>
+                  <input
+                    type="text" disabled
+                    className="w-full h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
+                    value={editCourseData.course_code}
+                  />
+                  <p className="text-xs text-muted-foreground">Course code cannot be changed.</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Course Name</label>
+                  <input
+                    type="text" required
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={editCourseData.course_name}
+                    onChange={(e) => setEditCourseData({ ...editCourseData, course_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Schedule</label>
+                  <input
+                    type="text"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={editCourseData.schedule || ''}
+                    onChange={(e) => setEditCourseData({ ...editCourseData, schedule: e.target.value })}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Cancel</Button>
+                  <Button type="submit">Save Changes</Button>
                 </div>
               </form>
             </CardContent>

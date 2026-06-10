@@ -132,3 +132,41 @@ async def enroll_students(
             
     await db.commit()
     return {"message": f"Successfully synced enrollments. Added {len(to_add)}, removed {len(to_remove)}."}
+
+@router.put("/{course_id}", response_model=CourseOut)
+async def update_course(
+    course_id: UUID,
+    course_update: CourseUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    result = await db.execute(select(Course).where(Course.id == course_id))
+    course = result.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    if course_update.course_name is not None:
+        course.course_name = course_update.course_name
+    if course_update.schedule is not None:
+        course.schedule = course_update.schedule
+    if course_update.teacher_id is not None:
+        course.teacher_id = course_update.teacher_id
+
+    await db.commit()
+    await db.refresh(course)
+    return course
+
+@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_course(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    result = await db.execute(select(Course).where(Course.id == course_id))
+    course = result.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    await db.delete(course)
+    await db.commit()
+    return None

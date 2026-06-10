@@ -20,3 +20,17 @@ class UserOut(UserBase):
     is_active: bool
     
     model_config = ConfigDict(from_attributes=True)
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    employee_id: Optional[str] = None
+    department: Optional[str] = None
+
+class UserListOut(UserOut):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    employee_id: Optional[str] = None
+    department: Optional[str] = None

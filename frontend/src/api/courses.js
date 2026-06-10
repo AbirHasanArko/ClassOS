@@ -19,3 +19,13 @@ export const getCourseStudents = async (courseId) => {
   const response = await client.get(`/courses/${courseId}/students`);
   return response.data;
 };
+
+export const updateCourse = async (courseId, courseData) => {
+  const response = await client.put(`/courses/${courseId}`, courseData);
+  return response.data;
+};
+
+export const deleteCourse = async (courseId) => {
+  const response = await client.delete(`/courses/${courseId}`);
+  return response.data;
+};

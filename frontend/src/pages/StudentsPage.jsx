@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { WebcamCapture } from '../components/ui/WebcamCapture';
-import { getStudents, createStudent } from '../api/students';
+import { getStudents, createStudent, updateStudent, deleteStudent } from '../api/students';
 import { uploadFaceImages } from '../api/face';
 import { enrollFingerprint } from '../api/attendance';
-import { UserPlus, Search, Fingerprint, ScanFace, Upload, Camera } from 'lucide-react';
+import { UserPlus, Search, Fingerprint, ScanFace, Upload, Camera, Pencil, Trash } from 'lucide-react';
 
 export const StudentsPage = () => {
   const [students, setStudents] = useState([]);
@@ -25,6 +25,11 @@ export const StudentsPage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null); // { message, samples_added, total_samples }
   const [isEnrollingFP, setIsEnrollingFP] = useState(false);
+
+  // Edit/Delete State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editStudentData, setEditStudentData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCloseFaceModal = useCallback(() => {
     setShowFaceUpload(false);
@@ -57,6 +62,36 @@ export const StudentsPage = () => {
       fetchStudents();
     } catch (err) {
       console.error('Failed to create student', err);
+    }
+  };
+
+  const handleOpenEditModal = (student) => {
+    setEditStudentData({ ...student });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditStudent = async (e) => {
+    e.preventDefault();
+    try {
+      await updateStudent(editStudentData.id, editStudentData);
+      setShowEditModal(false);
+      fetchStudents();
+    } catch (err) {
+      console.error('Failed to update student', err);
+    }
+  };
+
+  const handleDeleteStudent = async (student) => {
+    if (confirm(`Are you sure you want to delete ${student.student_id} - ${student.first_name} ${student.last_name}? This will delete all their data.`)) {
+      setIsDeleting(true);
+      try {
+        await deleteStudent(student.id);
+        fetchStudents();
+      } catch (err) {
+        console.error('Failed to delete student', err);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -131,6 +166,7 @@ export const StudentsPage = () => {
                   <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-center p-4 font-medium text-muted-foreground">Face</th>
                   <th className="text-center p-4 font-medium text-muted-foreground">Fingerprint</th>
+                  <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,11 +193,21 @@ export const StudentsPage = () => {
                         </Button>
                       )}
                     </td>
+                    <td className="p-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditModal(student)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30" disabled={isDeleting} onClick={() => handleDeleteStudent(student)}>
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {students.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-muted-foreground">
+                    <td colSpan="6" className="p-8 text-center text-muted-foreground">
                       No students found.
                     </td>
                   </tr>
@@ -224,6 +270,63 @@ export const StudentsPage = () => {
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" type="button" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit">Create Student</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditModal && editStudentData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader>
+              <CardTitle>Edit Student</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveEditStudent} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Student ID</label>
+                  <input
+                    type="text" disabled
+                    className="w-full h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
+                    value={editStudentData.student_id}
+                  />
+                  <p className="text-xs text-muted-foreground">Student ID cannot be changed.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">First Name</label>
+                    <input
+                      type="text" required
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={editStudentData.first_name}
+                      onChange={(e) => setEditStudentData({ ...editStudentData, first_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Last Name</label>
+                    <input
+                      type="text" required
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={editStudentData.last_name}
+                      onChange={(e) => setEditStudentData({ ...editStudentData, last_name: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <input
+                    type="email" required
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={editStudentData.email}
+                    onChange={(e) => setEditStudentData({ ...editStudentData, email: e.target.value })}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Cancel</Button>
+                  <Button type="submit">Save Changes</Button>
                 </div>
               </form>
             </CardContent>

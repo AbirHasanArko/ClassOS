@@ -139,6 +139,70 @@ async def get_student(
         "fingerprint_registered": student.fingerprint_registered
     }
 
+@router.put("/{student_id}", response_model=StudentOut)
+async def update_student(
+    student_id: UUID,
+    student_update: StudentUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    result = await db.execute(
+        select(Student).options(selectinload(Student.user)).where(Student.id == student_id)
+    )
+    student = result.scalar_one_or_none()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    if student_update.first_name is not None:
+        student.first_name = student_update.first_name
+    if student_update.last_name is not None:
+        student.last_name = student_update.last_name
+    
+    if student_update.email is not None and student_update.email != student.user.email:
+        # Check if email is already taken
+        email_check = await db.execute(select(User).where(User.email == student_update.email))
+        if email_check.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already registered")
+        student.user.email = student_update.email
+
+    await db.commit()
+    await db.refresh(student)
+    
+    return {
+        "id": student.id,
+        "user_id": student.user_id,
+        "student_id": student.student_id,
+        "first_name": student.first_name,
+        "last_name": student.last_name,
+        "email": student.user.email,
+        "photo_path": student.photo_path,
+        "face_registered": student.face_registered,
+        "fingerprint_registered": student.fingerprint_registered
+    }
+
+@router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_student(
+    student_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    # Retrieve student to get user_id
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    student = result.scalar_one_or_none()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Delete the user. Because of cascade="all, delete-orphan", this will also delete the student profile.
+    user_result = await db.execute(select(User).where(User.id == student.user_id))
+    user = user_result.scalar_one_or_none()
+    if user:
+        await db.delete(user)
+        
+    await db.commit()
+    return None
+
 @router.get("/me/attendance", response_model=StudentAttendanceStatsOut)
 async def get_my_attendance(
     db: AsyncSession = Depends(get_db),
