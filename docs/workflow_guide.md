@@ -79,6 +79,14 @@ At any point during the session, the teacher can switch to the **Sheet** tab to 
 1. Once all students have arrived and the head count matches the recognized count, the teacher clicks **End Session**.
 2. The camera feed is turned off, and the attendance records for that session are permanently locked into the PostgreSQL database.
 
+### Step 2.6: Analytics & Exporting Course Reports
+Teachers and Admins can export the full attendance report for any course:
+1. Navigate to the **Courses** page.
+2. Click the **View Report** button on any course card.
+3. A modal will display a comprehensive table of all enrolled students.
+4. The table displays daily attendance statuses, an overall attendance percentage (highlighted in red if <60%), and a calculated 0-10 score.
+5. Click **Export CSV** to download the entire dataset for offline record-keeping.
+
 ---
 
 ## 3. Student Workflow (Self-Service)

@@ -38,3 +38,19 @@ class SessionSummaryOut(BaseModel):
 class SessionSummaryList(BaseModel):
     items: List[SessionSummaryOut]
     total: int
+
+class CourseReportStudentOut(BaseModel):
+    student_id: str
+    first_name: str
+    last_name: str
+    sessions: Dict[str, str]  # Map of session_date (YYYY-MM-DD) to status (PRESENT/ABSENT/LATE/EXCUSED)
+    total_present: int
+    total_sessions: int
+    attendance_percentage: float
+    attendance_score: int
+
+class CourseReportOut(BaseModel):
+    course_code: str
+    course_name: str
+    session_dates: List[str]  # Ordered list of dates
+    students: List[CourseReportStudentOut]

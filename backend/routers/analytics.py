@@ -170,3 +170,160 @@ async def export_session_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+from backend.schemas.analytics import CourseReportOut, CourseReportStudentOut
+from collections import defaultdict
+
+def calculate_attendance_score(percentage: float) -> int:
+    if percentage >= 90:
+        return 10
+    elif percentage >= 85:
+        return 9
+    elif percentage >= 80:
+        return 8
+    elif percentage >= 75:
+        return 7
+    elif percentage >= 70:
+        return 6
+    elif percentage >= 65:
+        return 5
+    elif percentage >= 60:
+        return 4
+    else:
+        return 0
+
+@router.get("/courses/{course_id}/report", response_model=CourseReportOut)
+async def get_course_report(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    # Verify course exists
+    course_res = await db.execute(select(Course).where(Course.id == course_id))
+    course = course_res.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Get all students enrolled in the course
+    from models.student import Student
+    enrollment_res = await db.execute(
+        select(Student)
+        .join(Enrollment, Student.id == Enrollment.student_id)
+        .where(Enrollment.course_id == course_id)
+    )
+    enrolled_students = enrollment_res.scalars().all()
+
+    # Get all completed sessions for the course
+    session_res = await db.execute(
+        select(AttendanceSession)
+        .where(AttendanceSession.course_id == course_id)
+        .order_by(AttendanceSession.started_at.asc())
+    )
+    sessions = session_res.scalars().all()
+
+    session_dates = []
+    session_ids = []
+    for s in sessions:
+        date_str = s.started_at.strftime("%Y-%m-%d")
+        # Handle multiple sessions on the same day if necessary, but keep it simple with date format
+        if date_str in session_dates:
+            date_str = s.started_at.strftime("%Y-%m-%d %H:%M")
+        session_dates.append(date_str)
+        session_ids.append(s.id)
+
+    # Get all attendance records for these sessions
+    att_records = []
+    if session_ids:
+        att_res = await db.execute(
+            select(Attendance)
+            .where(Attendance.session_id.in_(session_ids))
+        )
+        att_records = att_res.scalars().all()
+
+    # Build lookup: (student_id, session_id) -> status
+    att_lookup = {}
+    for att in att_records:
+        att_lookup[(att.student_id, att.session_id)] = att.status.value if hasattr(att.status, 'value') else str(att.status)
+
+    student_reports = []
+    total_sessions = len(sessions)
+
+    for student in enrolled_students:
+        student_sessions = {}
+        total_present = 0
+        for i, s_id in enumerate(session_ids):
+            date_str = session_dates[i]
+            status = att_lookup.get((student.id, s_id), "ABSENT").upper()
+            student_sessions[date_str] = status
+            if status in ["PRESENT", "LATE"]:
+                total_present += 1
+
+        percentage = (total_present / total_sessions * 100) if total_sessions > 0 else 0.0
+        score = calculate_attendance_score(percentage)
+
+        student_reports.append(CourseReportStudentOut(
+            student_id=student.student_id,
+            first_name=student.first_name,
+            last_name=student.last_name,
+            sessions=student_sessions,
+            total_present=total_present,
+            total_sessions=total_sessions,
+            attendance_percentage=round(percentage, 1),
+            attendance_score=score
+        ))
+
+    # Sort students by last name, then first name
+    student_reports.sort(key=lambda x: (x.last_name.lower(), x.first_name.lower()))
+
+    return CourseReportOut(
+        course_code=course.course_code,
+        course_name=course.course_name,
+        session_dates=session_dates,
+        students=student_reports
+    )
+
+@router.get("/courses/{course_id}/report/csv")
+async def export_course_report_csv(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    report_data = await get_course_report(course_id, db, current_user)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    header = ["Student ID", "First Name", "Last Name"] + report_data.session_dates + ["Total Present", "Total Sessions", "Percentage (%)", "Score"]
+    writer.writerow(header)
+    
+    for student in report_data.students:
+        row = [
+            student.student_id,
+            student.first_name,
+            student.last_name
+        ]
+        # Session statuses
+        for date_str in report_data.session_dates:
+            row.append(student.sessions.get(date_str, "ABSENT"))
+            
+        row.extend([
+            student.total_present,
+            student.total_sessions,
+            student.attendance_percentage,
+            student.attendance_score
+        ])
+        writer.writerow(row)
+        
+    output.seek(0)
+    
+    from datetime import datetime
+    date_str = datetime.now().strftime("%Y%m%d")
+    filename = f"{report_data.course_code}_full_report_{date_str}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]), 
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+

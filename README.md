@@ -247,7 +247,8 @@ The frontend is a beautifully designed SPA (Single Page Application) built with 
    - The Raspberry Pi immediately boots up the AI background thread, turns on the camera, and begins streaming the live MJPEG feed to the dashboard.
    - As students walk into the room, bounding boxes appear around their faces. Green boxes indicate they have been successfully logged in the database.
 5. **Exporting Data:**
-   - After class, the teacher clicks "End Session". They can then navigate to the **Analytics** tab to download a CSV of the exact time and method (Face vs Fingerprint) each student used to check in.
+   - After class, the teacher clicks "End Session". They can navigate to the **Analytics** tab to download a CSV of the exact time and method (Face vs Fingerprint) each student used to check in.
+   - Alternatively, teachers can go to the **Courses** page and click **View Report** to see a full, aggregated attendance spreadsheet across all dates for the course, including auto-calculated scores and percentages, and export it as a CSV.
 
 ---
 

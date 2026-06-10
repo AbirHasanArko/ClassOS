@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { getCourses, createCourse, enrollStudents, getCourseStudents } from '../api/courses';
 import { getStudents } from '../api/students';
-import { BookOpen, Plus, Users, CheckSquare, Square, X } from 'lucide-react';
+import { getCourseReport, downloadCourseReportCsv } from '../api/analytics';
+import { BookOpen, Plus, Users, CheckSquare, Square, X, FileSpreadsheet, FileBarChart } from 'lucide-react';
 
 export const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
@@ -17,6 +18,13 @@ export const CoursesPage = () => {
   const [allStudents, setAllStudents] = useState([]);
   const [enrolledIds, setEnrolledIds] = useState(new Set());
   const [isSavingEnrollment, setIsSavingEnrollment] = useState(false);
+
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedReportCourse, setSelectedReportCourse] = useState(null);
+  const [reportData, setReportData] = useState(null);
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
 
   const fetchCourses = async () => {
     try {
@@ -87,6 +95,33 @@ export const CoursesPage = () => {
     }
   };
 
+  const handleOpenReportModal = async (course) => {
+    setSelectedReportCourse(course);
+    setShowReportModal(true);
+    setIsLoadingReport(true);
+    setReportData(null);
+    try {
+      const data = await getCourseReport(course.id);
+      setReportData(data);
+    } catch (err) {
+      console.error('Failed to load course report', err);
+    } finally {
+      setIsLoadingReport(false);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    if (!selectedReportCourse) return;
+    setIsDownloadingReport(true);
+    try {
+      await downloadCourseReportCsv(selectedReportCourse.id);
+    } catch (err) {
+      console.error('Failed to download course report CSV', err);
+    } finally {
+      setIsDownloadingReport(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -115,15 +150,26 @@ export const CoursesPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">{course.schedule || 'No schedule set'}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={(e) => { e.stopPropagation(); handleOpenEnrollModal(course); }}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Manage Students
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={(e) => { e.stopPropagation(); handleOpenEnrollModal(course); }}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Students
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={(e) => { e.stopPropagation(); handleOpenReportModal(course); }}
+                >
+                  <FileBarChart className="h-4 w-4 mr-2" />
+                  View Report
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -242,6 +288,99 @@ export const CoursesPage = () => {
                 <Button variant="outline" onClick={() => setShowEnrollModal(false)}>Cancel</Button>
                 <Button onClick={handleSaveEnrollments} disabled={isSavingEnrollment}>
                   {isSavingEnrollment ? 'Saving...' : 'Save Enrollments'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Course Report Modal */}
+      {showReportModal && selectedReportCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+              <div>
+                <CardTitle className="text-xl">Course Attendance Report</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedReportCourse.course_code} — {selectedReportCourse.course_name}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowReportModal(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            
+            <CardContent className="flex-1 overflow-auto p-0">
+              {isLoadingReport ? (
+                <div className="p-8 text-center text-muted-foreground">Loading report data...</div>
+              ) : !reportData || reportData.students.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  No attendance data or students found for this course.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-background/95 backdrop-blur shadow-sm z-10">
+                      <tr className="border-b text-muted-foreground">
+                        <th className="py-3 px-4 font-medium text-left sticky left-0 bg-background/95 backdrop-blur">Student ID</th>
+                        <th className="py-3 px-4 font-medium text-left sticky left-24 bg-background/95 backdrop-blur">Name</th>
+                        {reportData.session_dates.map((date, idx) => (
+                          <th key={idx} className="py-3 px-4 font-medium text-center whitespace-nowrap">{date}</th>
+                        ))}
+                        <th className="py-3 px-4 font-medium text-center border-l">Percentage</th>
+                        <th className="py-3 px-4 font-medium text-center">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.students.map((student) => (
+                        <tr key={student.student_id} className="border-b hover:bg-muted/30">
+                          <td className="py-3 px-4 font-mono text-xs sticky left-0 bg-background">{student.student_id}</td>
+                          <td className="py-3 px-4 font-medium whitespace-nowrap sticky left-24 bg-background">
+                            {student.first_name} {student.last_name}
+                          </td>
+                          {reportData.session_dates.map((date, idx) => {
+                            const status = student.sessions[date];
+                            return (
+                              <td key={idx} className="py-3 px-4 text-center">
+                                {status === 'PRESENT' || status === 'LATE' ? (
+                                  <span className="text-green-600 dark:text-green-400 font-bold">P</span>
+                                ) : status === 'EXCUSED' ? (
+                                  <span className="text-blue-600 dark:text-blue-400 font-bold">E</span>
+                                ) : (
+                                  <span className="text-red-600 dark:text-red-400 font-bold">A</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="py-3 px-4 text-center border-l">
+                            <span className={`font-semibold ${student.attendance_percentage < 60 ? 'text-red-600 dark:text-red-400' : ''}`}>
+                              {student.attendance_percentage}%
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-bold">
+                            {student.attendance_score}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+            
+            <div className="p-4 border-t flex justify-between items-center bg-muted/20">
+              <span className="text-sm text-muted-foreground font-medium">
+                {reportData?.students.length || 0} students
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowReportModal(false)}>Close</Button>
+                <Button 
+                  onClick={handleDownloadReport} 
+                  disabled={isDownloadingReport || !reportData || reportData.students.length === 0}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  {isDownloadingReport ? 'Downloading...' : 'Export CSV'}
                 </Button>
               </div>
             </div>
