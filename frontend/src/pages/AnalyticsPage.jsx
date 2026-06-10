@@ -91,12 +91,19 @@ export const AnalyticsPage = () => {
     datasets: [{
       data: [stats.present, stats.absent, stats.late, stats.excused],
       backgroundColor: [
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(99, 102, 241, 0.8)',
+        'rgba(34, 197, 94, 0.8)',   // green
+        'rgba(239, 68, 68, 0.8)',   // red
+        'rgba(245, 158, 11, 0.8)',  // amber
+        'rgba(99, 102, 241, 0.8)',  // indigo
       ],
-      borderWidth: 0,
+      hoverBackgroundColor: [
+        'rgba(34, 197, 94, 1)',
+        'rgba(239, 68, 68, 1)',
+        'rgba(245, 158, 11, 1)',
+        'rgba(99, 102, 241, 1)',
+      ],
+      borderWidth: 2,
+      borderColor: 'hsl(var(--background))',
     }]
   };
 
@@ -106,49 +113,98 @@ export const AnalyticsPage = () => {
       label: 'Attendance Rate (%)',
       data: [85, 92, 78, 95, 88],
       borderColor: 'rgba(99, 102, 241, 1)',
-      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      backgroundColor: 'rgba(99, 102, 241, 0.15)',
       fill: true,
       tension: 0.4,
-      pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-      pointBorderWidth: 0,
+      pointBackgroundColor: 'rgba(255, 255, 255, 1)',
+      pointBorderColor: 'rgba(99, 102, 241, 1)',
+      pointBorderWidth: 2,
       pointRadius: 4,
+      pointHoverRadius: 6,
     }]
   };
 
   const methodChartData = {
     labels: ['Face Recognition', 'Fingerprint', 'Manual'],
     datasets: [{
-      label: 'Count',
+      label: 'Check-in Count',
       data: [65, 15, 20],
       backgroundColor: [
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(99, 102, 241, 0.8)',
+        'rgba(14, 165, 233, 0.8)',  // light blue
+        'rgba(168, 85, 247, 0.8)',  // purple
+        'rgba(100, 116, 139, 0.8)', // slate
+      ],
+      hoverBackgroundColor: [
+        'rgba(14, 165, 233, 1)',
+        'rgba(168, 85, 247, 1)',
+        'rgba(100, 116, 139, 1)',
       ],
       borderWidth: 0,
       borderRadius: 6,
+      barPercentage: 0.6,
     }]
   };
 
-  const chartOptions = {
+  const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         labels: {
           color: 'hsl(var(--muted-foreground))',
-          font: { family: 'Inter' }
+          font: { family: 'Inter', size: 12 },
+          usePointStyle: true,
+          padding: 20,
         }
+      },
+      tooltip: {
+        backgroundColor: 'hsl(var(--card))',
+        titleColor: 'hsl(var(--card-foreground))',
+        bodyColor: 'hsl(var(--muted-foreground))',
+        borderColor: 'hsl(var(--border))',
+        borderWidth: 1,
+        padding: 10,
+        displayColors: true,
+        usePointStyle: true,
       }
-    },
+    }
+  };
+
+  const lineChartOptions = {
+    ...commonChartOptions,
     scales: {
       x: {
-        ticks: { color: 'hsl(var(--muted-foreground))' },
-        grid: { color: 'hsl(var(--border))' }
+        ticks: { color: 'hsl(var(--muted-foreground))', font: { family: 'Inter' } },
+        grid: { color: 'hsl(var(--border))', drawBorder: false }
       },
       y: {
-        ticks: { color: 'hsl(var(--muted-foreground))' },
-        grid: { color: 'hsl(var(--border))' }
+        beginAtZero: true,
+        max: 100,
+        ticks: { 
+          color: 'hsl(var(--muted-foreground))', 
+          font: { family: 'Inter' },
+          callback: (value) => `${value}%`
+        },
+        grid: { color: 'hsl(var(--border))', borderDash: [5, 5], drawBorder: false }
+      }
+    }
+  };
+
+  const barChartOptions = {
+    ...commonChartOptions,
+    scales: {
+      x: {
+        ticks: { color: 'hsl(var(--muted-foreground))', font: { family: 'Inter' } },
+        grid: { display: false, drawBorder: false }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { 
+          color: 'hsl(var(--muted-foreground))', 
+          font: { family: 'Inter' },
+          stepSize: 20
+        },
+        grid: { color: 'hsl(var(--border))', borderDash: [5, 5], drawBorder: false }
       }
     }
   };
@@ -189,10 +245,25 @@ export const AnalyticsPage = () => {
                   plugins: {
                     legend: {
                       position: 'bottom',
-                      labels: { color: 'hsl(var(--muted-foreground))', font: { family: 'Inter' } }
+                      labels: { 
+                        color: 'hsl(var(--muted-foreground))', 
+                        font: { family: 'Inter', size: 12 },
+                        usePointStyle: true,
+                        padding: 20
+                      }
+                    },
+                    tooltip: {
+                      backgroundColor: 'hsl(var(--card))',
+                      titleColor: 'hsl(var(--card-foreground))',
+                      bodyColor: 'hsl(var(--muted-foreground))',
+                      borderColor: 'hsl(var(--border))',
+                      borderWidth: 1,
+                      padding: 10,
+                      displayColors: true,
+                      usePointStyle: true,
                     }
                   },
-                  cutout: '60%',
+                  cutout: '65%',
                 }}
               />
             </div>
@@ -206,7 +277,7 @@ export const AnalyticsPage = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
-              <Line data={weeklyTrendData} options={chartOptions} />
+              <Line data={weeklyTrendData} options={lineChartOptions} />
             </div>
           </CardContent>
         </Card>
@@ -218,7 +289,7 @@ export const AnalyticsPage = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
-              <Bar data={methodChartData} options={chartOptions} />
+              <Bar data={methodChartData} options={barChartOptions} />
             </div>
           </CardContent>
         </Card>
