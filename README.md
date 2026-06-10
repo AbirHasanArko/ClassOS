@@ -1,11 +1,11 @@
-# 🎓 ClassOS - Embedded AI Classroom Attendance System
+<div align="center">
+  <h1>ClassOS: AI-Powered Embedded Classroom Attendance System</h1>
+  <p>
+    <strong>The ultimate, fully automated classroom attendance solution. 
+    <br>Powered by Computer Vision, Hardware Biometrics, and a Modern Web Stack on the Edge.</strong>
+  </p>
 
-<p align="center">
-  <strong>The ultimate, fully automated classroom attendance solution. 
-  <br>Powered by Computer Vision, Hardware Biometrics, and a Modern Web Stack on the Edge.</strong>
-</p>
-
-<p align="center">
+  <p>
   <img src="https://img.shields.io/badge/Python-3.11-blue?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-0.110-green?logo=fastapi" alt="FastAPI">
   <img src="https://img.shields.io/badge/React-18-blue?logo=react" alt="React">
@@ -14,7 +14,8 @@
   <img src="https://img.shields.io/badge/Docker-Ready-blue?logo=docker" alt="Docker">
   <img src="https://img.shields.io/badge/YOLOv8-Nano-yellow" alt="YOLOv8">
 </p>
-
+</div>  
+  
 ---
 
 ## 👨‍💻 Developers
