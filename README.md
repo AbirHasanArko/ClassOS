@@ -157,6 +157,34 @@ graph TD
     Orchestrator -- Broadcasts --> WS_Mgr
 ```
 
+### 🔍 Detailed Component Breakdown & Working Principles
+
+#### 1. The Edge Server (Raspberry Pi 5)
+- **Role:** The central computing hub that runs the entire software stack. By acting as an edge node, it guarantees sub-second latency for heavy AI inferencing without relying on external cloud servers or active internet connections.
+- **Interconnection:** Connects to the local network to serve the React frontend to teacher/student devices, interfaces with the R307 biometric sensor via low-level GPIO/UART pins, and reads raw video frames from the USB webcam.
+
+#### 2. Frontend Dashboard (React + Vite)
+- **Role:** A modern, responsive Single Page Application (SPA) serving tailored experiences for Admins, Teachers, and Students.
+- **Working Principle:** The frontend uses standard REST HTTP requests (`axios`) for CRUD operations, course management, and historical data analytics. During live attendance sessions, it establishes a persistent **WebSocket** connection to the backend to receive real-time JSON payloads (e.g., `face_recognized`, `head_count_mismatch`), avoiding the latency of HTTP polling. It also reads a continuous `multipart/x-mixed-replace` HTTP response to render the live MJPEG camera feed directly in the browser.
+
+#### 3. Backend Orchestrator (FastAPI)
+- **Role:** The highly-concurrent core application layer that bridges the database, the frontend WebSockets, and the background AI models.
+- **Working Principle:** Written in asynchronous Python, FastAPI exposes JWT-secured REST endpoints. When a teacher initiates an attendance session, FastAPI spawns a background hardware thread. This thread continuously pulls frames from the camera, feeds them to the AI models, and uses an asynchronous `BroadcastManager` to push real-time event alerts directly to the connected frontend clients.
+
+#### 4. AI & Computer Vision Service
+- **Role:** Processes raw video frames into actionable attendance and security data.
+- **Interconnection:** Runs locally within the FastAPI application context, utilizing the Raspberry Pi's CPU architecture.
+- **Working Principle:** For every frame, the engine runs a highly optimized `dlib` ResNet network to detect faces and compute a 128-dimensional mathematical embedding. It calculates the Euclidean distance against enrolled embeddings stored in PostgreSQL to identify students. Simultaneously, it runs a quantized `YOLOv8 Nano` model strictly to count the total number of human heads in the frame, alerting the teacher if the number of automatically recognized faces does not match the physical head count (preventing proxy attendance).
+
+#### 5. Hardware Biometrics Service (R307 Sensor)
+- **Role:** A robust, un-spoofable fallback mechanism for students whose faces cannot be confidently recognized (due to poor lighting, masks, or occlusions).
+- **Interconnection:** Wired directly to the Raspberry Pi's GPIO pins, communicating via the UART serial protocol.
+- **Working Principle:** A dedicated Python serial manager listens for commands from the backend. When a teacher clicks "Verify Fingerprint" on the dashboard, the backend sends a hex instruction payload over UART. The R307 sensor illuminates, scans the finger, performs an onboard hardware search against its internal memory, and returns a success/fail payload over UART back to the backend.
+
+#### 6. Database Layer (PostgreSQL 16)
+- **Role:** The persistent relational storage for users, courses, attendance logs, and biometric data.
+- **Working Principle:** Interfaced via the `SQLAlchemy` ORM. The 128D face embeddings are stored efficiently as float arrays. The schema is highly normalized with strict foreign-key constraints and cascading deletions (e.g., deleting a course automatically purges all orphaned attendance sessions and student enrollments tied to it).
+
 ---
 
 ## 🤖 AI & Logic Pipeline
