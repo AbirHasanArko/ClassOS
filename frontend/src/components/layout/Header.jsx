@@ -1,8 +1,8 @@
-import { Moon, Sun, Bell } from 'lucide-react';
+import { Moon, Sun, Bell, Menu } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLocation } from 'react-router-dom';
 
-export const Header = () => {
+export const Header = ({ onMenuClick }) => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
 
@@ -19,7 +19,13 @@ export const Header = () => {
 
   return (
     <header className="h-16 border-b bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-10">
-      <div>
+      <div className="flex items-center gap-4">
+        <button 
+          className="p-2 -ml-2 rounded-md hover:bg-accent text-muted-foreground md:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu size={24} />
+        </button>
         <h1 className="text-xl font-semibold tracking-tight">{getPageTitle()}</h1>
       </div>
 

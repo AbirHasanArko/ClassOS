@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, BookOpen, BarChart3, Settings, LogOut, CheckSquare, Info, ScanFace } from 'lucide-react';
+import { Home, Users, BookOpen, BarChart3, Settings, LogOut, CheckSquare, Info, ScanFace, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../ui/Button';
 
-export const Sidebar = () => {
+export const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
@@ -25,14 +25,23 @@ export const Sidebar = () => {
   const visibleNav = navItems.filter(item => item.roles.includes(user?.role));
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-card border-r flex flex-col transition-all duration-300">
-      <div className="h-16 flex items-center px-6 border-b">
+    <aside 
+      className={cn(
+        "w-64 flex-shrink-0 bg-card border-r flex flex-col transition-transform duration-300 z-50",
+        "fixed inset-y-0 left-0 md:relative md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
+      <div className="h-16 flex items-center justify-between px-6 border-b">
         <div className="flex items-center gap-2 text-primary font-bold text-xl">
           <div className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center">
             C
           </div>
           <span>ClassOS</span>
         </div>
+        <button className="md:hidden p-2 text-muted-foreground hover:bg-accent rounded-md" onClick={onClose}>
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
