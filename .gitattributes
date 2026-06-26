@@ -1,0 +1,8 @@
+# Standardize line endings to LF (Linux format) for all text files
+# This prevents Docker cache busting when pulling across Windows/Linux
+* text=auto eol=lf
+
+# Explicitly declare Windows scripts to use CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
