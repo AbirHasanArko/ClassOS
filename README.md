@@ -320,11 +320,15 @@ cd ClassOS
 # 2. Configure environment variables
 cp .env.example .env
 
-# 3. Build and launch all containers
+# 3. Generate local SSL Certificates
+chmod +x scripts/generate_ssl.sh
+./scripts/generate_ssl.sh
+
+# 4. Build and launch all containers
 docker compose up -d --build
 
-# 4. Access the web dashboard
-open http://<YOUR_PI_IP_ADDRESS>:5173
+# 5. Access the web dashboard (It will redirect to HTTPS)
+open https://<YOUR_PI_IP_ADDRESS>
 ```
 
 **Default Admin Credentials**
@@ -372,6 +376,7 @@ For deeper technical dives, please refer to the dedicated documentation files:
 - 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
 - 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
 - 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**  
+- 📷 **[Camera Permissions Guide (camera_permissions_guide.md)](docs/camera_permissions_guide.md)**
 
 ---
 

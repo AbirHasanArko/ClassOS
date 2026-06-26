@@ -108,6 +108,12 @@ nano .env
 
 ### 4.4 Build & Start
 
+Before starting, generate the local SSL certificates:
+```bash
+chmod +x scripts/generate_ssl.sh
+./scripts/generate_ssl.sh
+```
+
 ```bash
 # Build and start all services
 docker compose up -d --build
@@ -150,7 +156,7 @@ curl http://localhost/api/health
 
 Open a browser and navigate to:
 ```
-http://<raspberry-pi-ip>
+https://<raspberry-pi-ip>
 ```
 
 Login with default credentials:
