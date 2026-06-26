@@ -194,11 +194,50 @@ docker compose logs -f db          # Database logs
 docker compose restart backend
 ```
 
-### Update ClassOS
+### Safe Update Process
+When pulling new code from GitHub, it is highly recommended to back up your database first.
 ```bash
 cd /opt/ClassOS
+# 1. Take a backup of the current database
+docker exec classos-db pg_dump -U classos classos_db > backup_$(date +%Y%m%d).sql
+
+# 2. Pull the latest code
 git pull
+
+# 3. Rebuild and restart services
 docker compose up -d --build
+```
+
+### System Cleanup (Freeing up SD Card Space)
+
+If your Raspberry Pi is running out of storage space, you can safely clean up cached Docker builds, old packages, and system logs.
+
+**1. Safe Docker Clean (Keeps Data)**
+Removes unused containers, networks, and dangling images without affecting your live database or face data.
+```bash
+docker system prune -a -f
+docker builder prune -a -f
+```
+
+**2. Deep System Clean (OS Level)**
+Removes cached `.deb` installer files, pip caches, and trims system logs to 50MB.
+```bash
+sudo apt-get clean
+sudo apt-get autoremove -y
+sudo journalctl --vacuum-size=50M
+rm -rf ~/.cache/pip
+npm cache clean --force
+```
+
+**3. Total Factory Reset (Wipes ALL Data)**
+Only use this if you want to completely erase the database, users, and face data to start from scratch.
+```bash
+# Stop and delete containers AND volumes
+docker compose down -v
+# Clean system
+docker system prune -a --volumes -f
+# Re-deploy
+./scripts/deploy_pi.sh
 ```
 
 ### Backup Database
