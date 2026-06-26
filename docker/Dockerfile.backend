@@ -25,6 +25,8 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY backend/requirements.txt .
+# Force CMake to use 4 cores for dlib compilation (cuts time from 1.5hrs to ~10mins)
+ENV CMAKE_BUILD_PARALLEL_LEVEL=4
 RUN pip install --no-cache-dir -r requirements.txt
 
 # --- Production Stage ---
