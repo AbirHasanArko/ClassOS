@@ -10,41 +10,8 @@ echo "========================================="
 echo "  ClassOS v2.0 Upgrade Script"
 echo "========================================="
 
-# 1. Update Database Schema
-echo "[1/4] Upgrading Database Schema..."
-cat << 'EOF' > /tmp/upgrade_db.py
-import asyncio
-from sqlalchemy import text
-from database.connection import engine
-
-async def migrate():
-    async with engine.begin() as conn:
-        try:
-            await conn.execute(text("ALTER TABLE attendance_sessions ADD COLUMN mode VARCHAR(20) NOT NULL DEFAULT 'attendance';"))
-            print("Successfully added 'mode' column to attendance_sessions.")
-        except Exception as e:
-            if "already exists" in str(e).lower() or "duplicate_column" in str(e).lower() or "42701" in str(e):
-                print("Column 'mode' already exists. Skipping.")
-            else:
-                print(f"Error: {e}")
-                raise
-
-if __name__ == "__main__":
-    asyncio.run(migrate())
-EOF
-
-if docker compose ps | grep -q "classos-backend"; then
-    docker cp /tmp/upgrade_db.py classos-backend:/app/upgrade_db.py
-    docker exec classos-backend python /app/upgrade_db.py
-    docker exec classos-backend rm /app/upgrade_db.py
-else
-    export PYTHONPATH=$(pwd)
-    python /tmp/upgrade_db.py
-fi
-rm /tmp/upgrade_db.py
-
-# 2. Enable I2C
-echo "[2/4] Enabling I2C for LCD Display..."
+# 1. Enable I2C
+echo "[1/3] Enabling I2C for LCD Display..."
 REBOOT_REQUIRED=false
 if ! grep -q "dtparam=i2c_arm=on" /boot/firmware/config.txt; then
     echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt
@@ -83,9 +50,16 @@ else
 fi
 
 # 4. Rebuild & Restart services
-echo "[4/4] Rebuilding and Restarting ClassOS Services..."
+echo "[3/4] Rebuilding and Restarting ClassOS Services..."
 docker compose down
 docker compose up -d --build
+
+# 5. Update Database Schema
+echo "[4/4] Upgrading Database Schema..."
+echo "Waiting 5 seconds for database to initialize..."
+sleep 5
+docker compose exec -T db psql -U classos -d classos_db -c "ALTER TABLE attendance_sessions ADD COLUMN IF NOT EXISTS mode VARCHAR(20) NOT NULL DEFAULT 'attendance';"
+echo "Schema upgrade complete."
 
 echo "========================================="
 echo "  Upgrade Complete!"
