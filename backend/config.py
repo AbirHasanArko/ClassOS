@@ -79,6 +79,15 @@ class Settings(BaseSettings):
     LCD_I2C_ADDRESS: int = 0x27   # Default PCF8574 I2C address (run: i2cdetect -y 1 to confirm)
     LCD_I2C_BUS: int = 1           # I2C bus number (/dev/i2c-1) on Raspberry Pi
 
+    @field_validator("LCD_I2C_ADDRESS", mode="before")
+    @classmethod
+    def parse_hex_address(cls, v):
+        if isinstance(v, str):
+            if v.startswith("0x") or v.startswith("0X"):
+                return int(v, 16)
+            return int(v)
+        return v
+
     # ----- File Storage -----
     FACE_IMAGES_DIR: str = "data/faces"
     FACE_SAMPLES_PER_STUDENT: int = 20
