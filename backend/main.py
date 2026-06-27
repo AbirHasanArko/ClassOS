@@ -52,12 +52,23 @@ async def lifespan(app: FastAPI):
     # ----- Shutdown -----
     print("🛑 Shutting down ClassOS...")
 
-    # Stop attendance engine and camera
+    # Stop attendance engine and both cameras
     from attendance_engine.engine import engine as attendance_engine
     attendance_engine.is_running = False
-    from camera_service.camera import camera
-    camera.stop()
-    print("✅ Camera and attendance engine stopped")
+    from camera_service.camera import camera_0, camera_1
+    from ai_engine.pipeline import face_pipeline, head_count_pipeline
+    camera_0.stop()
+    camera_1.stop()
+    face_pipeline.is_running = False
+    head_count_pipeline.is_running = False
+    print("✅ Cameras and attendance engine stopped")
+
+    # Show idle on LCD before shutdown
+    try:
+        from lcd_service.display import lcd_display
+        lcd_display.show_idle()
+    except Exception:
+        pass
 
     from database.connection import engine
     await engine.dispose()

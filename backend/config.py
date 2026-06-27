@@ -42,11 +42,18 @@ class Settings(BaseSettings):
         """Return CORS origins as a list."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
-    # ----- Camera (USB Webcam) -----
+    # ----- Camera 0 — Entry / Face Recognition (CAM/DISP 0 on RPi5) -----
+    # Used for face recognition during Take Attendance mode.
+    # Also the source for face enrollment from the Pi's connected camera.
     CAMERA_RESOLUTION_WIDTH: int = 1280
     CAMERA_RESOLUTION_HEIGHT: int = 720
     CAMERA_FPS: int = 30
-    CAMERA_DEVICE_INDEX: int = 0  # /dev/video0 (or index for cv2.VideoCapture)
+    CAMERA_DEVICE_INDEX: int = 0  # /dev/video0 (CAM 0 / DISP 0)
+
+    # ----- Camera 1 — Classroom Overhead / Head Count (CAM/DISP 1 on RPi5) -----
+    # Used exclusively for YOLOv8 head counting in Verify Head Count mode.
+    # If unavailable, the system gracefully falls back to single-camera mode.
+    CAMERA_1_DEVICE_INDEX: int = 2  # /dev/video2 (CAM 1 / DISP 1 on RPi5)
 
     # ----- Fingerprint Sensor (R307) -----
     FINGERPRINT_UART_PORT: str = "/dev/ttyS0"
@@ -54,11 +61,23 @@ class Settings(BaseSettings):
     FINGERPRINT_MOCK_MODE: bool = False
 
     # ----- AI Engine -----
-    FACE_CONFIDENCE_AUTO: float = 0.75
-    FACE_CONFIDENCE_FINGERPRINT: float = 0.60
+    # Recognition thresholds:
+    #   >= FACE_CONFIDENCE_AUTO        : Auto-mark present (FACE method)
+    #   >= FACE_CONFIDENCE_FINGERPRINT : Prompt fingerprint verification
+    #   < FACE_CONFIDENCE_FINGERPRINT  : Unknown / ignored
+    #   No face at all                 : Direct fingerprint scan always available
+    FACE_CONFIDENCE_AUTO: float = 0.70         # 70% → auto mark present
+    FACE_CONFIDENCE_FINGERPRINT: float = 0.30  # 30% → prompt fingerprint
     YOLO_MODEL_PATH: str = "models/yolov8n.pt"
     YOLO_CONFIDENCE: float = 0.5
     HEAD_COUNT_INTERVAL: int = 5
+
+    # ----- LCD Display (20x4 I2C Character LCD — HD44780 + PCF8574 backpack) -----
+    # Set LCD_ENABLED=false to disable the LCD (e.g., during development on non-Pi hardware).
+    # The service falls back gracefully to stdout logging if hardware is unavailable.
+    LCD_ENABLED: bool = True
+    LCD_I2C_ADDRESS: int = 0x27   # Default PCF8574 I2C address (run: i2cdetect -y 1 to confirm)
+    LCD_I2C_BUS: int = 1           # I2C bus number (/dev/i2c-1) on Raspberry Pi
 
     # ----- File Storage -----
     FACE_IMAGES_DIR: str = "data/faces"

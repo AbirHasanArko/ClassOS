@@ -7,7 +7,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +37,12 @@ class AttendanceSession(Base, UUIDMixin, TimestampMixin):
         Enum(SessionStatus), default=SessionStatus.ACTIVE, nullable=False,
         index=True
     )
+    # Current active mode: "attendance" (Camera 0 face recognition)
+    #                   or "headcount"  (Camera 1 YOLOv8 counting)
+    # Persisted so the engine can recover the correct mode after a restart.
+    mode: Mapped[str] = mapped_column(
+        String(20), default="attendance", nullable=False
+    )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
@@ -52,4 +58,4 @@ class AttendanceSession(Base, UUIDMixin, TimestampMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<Session {self.id} Status:{self.status.value}>"
+        return f"<Session {self.id} Status:{self.status.value} Mode:{self.mode}>"

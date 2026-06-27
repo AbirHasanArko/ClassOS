@@ -4,8 +4,11 @@
 
 - Raspberry Pi 5 (8GB) with Raspberry Pi OS 64-bit (Bookworm)
 - MicroSD card (32GB+ recommended)
-- USB Webcam (UVC-compatible, 720p+, connected via USB)
-- R307 Fingerprint Sensor (wired to GPIO — see [hardware_wiring.md](hardware_wiring.md))
+- **2× Raspberry Pi Camera Module v2 or v3** (or UVC USB webcams)
+  - Camera 0: Connected to CAM/DISP 0 (entry / face recognition)
+  - Camera 1: Connected to CAM/DISP 1 (classroom overhead / head counting)
+- R307 Fingerprint Sensor (wired to GPIO UART — see [hardware_wiring.md](hardware_wiring.md))
+- 20×4 I2C LCD Display (PCF8574 backpack — see [hardware_wiring.md](hardware_wiring.md))
 - Ethernet or WiFi connection
 - SSH access enabled
 
@@ -33,7 +36,7 @@ sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y git
 
 # Clone ClassOS
-git clone https://github.com/yourusername/ClassOS.git /opt/ClassOS
+git clone https://github.com/AbirHasanArko/ClassOS.git /opt/ClassOS
 cd /opt/ClassOS
 ```
 
@@ -50,11 +53,12 @@ chmod +x scripts/deploy_pi.sh
 
 This script will:
 1. Update system packages
-2. Verify USB webcam is detected
-3. Enable UART for fingerprint sensor
-4. Install Docker & Docker Compose
-5. Download AI model weights (YOLOv8n)
-6. Build and start all Docker services
+2. Enable I2C (for LCD display)
+3. Enable UART (for fingerprint sensor)
+4. Verify cameras are detected
+5. Install Docker & Docker Compose
+6. Download AI model weights (YOLOv8n)
+7. Build and start all Docker services
 
 ---
 
@@ -71,50 +75,124 @@ sudo usermod -aG docker $USER
 # Log out and back in
 ```
 
-### 4.2 Enable Hardware
+### 4.2 Enable Hardware Interfaces
 
 ```bash
-# Verify USB webcam is connected
-ls -la /dev/video*
-lsusb  # should show your webcam
+# Enable Camera, I2C, and UART via raspi-config
+sudo raspi-config
+# → Interface Options → Camera → Enable
+# → Interface Options → I2C → Enable
+# → Interface Options → Serial Port → Disable shell, Enable hardware
 
-# Edit boot config (for UART / fingerprint sensor)
+# OR manually via /boot/firmware/config.txt:
 sudo nano /boot/firmware/config.txt
+```
 
-# Add these lines:
+Add / verify these lines in `/boot/firmware/config.txt`:
+```
+# Enable UART for R307 fingerprint sensor
 enable_uart=1
 dtoverlay=uart0
 
-# Disable serial console
-sudo systemctl disable serial-getty@ttyS0.service
+# Enable I2C for LCD display
+dtparam=i2c_arm=on
 
-# Reboot
+# Camera support is auto-detected on RPi5 Bookworm
+```
+
+Disable the serial console (conflicts with UART):
+```bash
+sudo systemctl disable serial-getty@ttyS0.service
+```
+
+Add your user to required groups:
+```bash
+sudo usermod -aG i2c $USER
+sudo usermod -aG dialout $USER
+```
+
+Reboot:
+```bash
 sudo reboot
 ```
 
-### 4.3 Configure Environment
+### 4.3 Verify Hardware
+
+```bash
+# ----- Cameras -----
+# Check available video devices
+ls -la /dev/video*
+rpicam-hello --list-cameras
+
+# Test Camera 0 (entry / face recognition)
+python3 -c "import cv2; cap = cv2.VideoCapture(0); ret, f = cap.read(); print('Camera 0 OK' if ret else 'Camera 0 FAILED'); cap.release()"
+
+# Test Camera 1 (head count)
+python3 -c "import cv2; cap = cv2.VideoCapture(2); ret, f = cap.read(); print('Camera 1 OK' if ret else 'Camera 1 FAILED — will fall back to single-camera mode'); cap.release()"
+
+# ----- LCD -----
+# Verify I2C device detected
+sudo i2cdetect -y 1
+# Should show 27 (or 3F) in the output grid
+
+# ----- Fingerprint Sensor -----
+ls -la /dev/ttyS0
+```
+
+### 4.4 Configure Environment
 
 ```bash
 cd /opt/ClassOS
 cp .env.example .env
 nano .env
-
-# Key settings to update:
-# - Set CAMERA_DEVICE_INDEX=0 (or the index of your USB webcam)
-# - Set FINGERPRINT_MOCK_MODE=false (use real sensor)
-# - Change JWT_SECRET_KEY and SECRET_KEY to random strings
-# - Change POSTGRES_PASSWORD
 ```
 
-### 4.4 Build & Start
-
-Before starting, generate the local SSL certificates:
+Key settings to review:
 ```bash
+# Camera indices — verify with `ls /dev/video*`
+CAMERA_DEVICE_INDEX=0         # Camera 0 (entry/face)
+CAMERA_1_DEVICE_INDEX=2       # Camera 1 (head count) — try 0, 1, or 2
+
+# Fingerprint sensor
+FINGERPRINT_MOCK_MODE=false   # Set false for real hardware
+
+# LCD display
+LCD_ENABLED=true
+LCD_I2C_ADDRESS=0x27          # Run i2cdetect to confirm
+
+# AI thresholds
+FACE_CONFIDENCE_AUTO=0.70     # >= 70% = auto present
+FACE_CONFIDENCE_FINGERPRINT=0.30  # 30-69% = fingerprint required
+
+# Secrets (CHANGE THESE!)
+JWT_SECRET_KEY=<random-64-char-string>
+SECRET_KEY=<random-64-char-string>
+POSTGRES_PASSWORD=<strong-password>
+```
+
+### 4.5 Enable Hardware Device Access in Docker
+
+Edit `docker-compose.yml` and **uncomment** the `devices` section under `backend`:
+
+```yaml
+backend:
+  devices:
+    - /dev/video0:/dev/video0       # Camera 0 — entry camera (face recognition)
+    - /dev/video2:/dev/video2       # Camera 1 — overhead camera (head counting)
+    - /dev/ttyS0:/dev/ttyS0         # R307 fingerprint sensor (UART)
+    - /dev/i2c-1:/dev/i2c-1         # I2C bus for 20x4 LCD display
+  privileged: true
+```
+
+> 💡 If Camera 1 device index differs on your system (e.g., `/dev/video1`), update both the `devices` entry and `CAMERA_1_DEVICE_INDEX` in `.env`.
+
+### 4.6 Build & Start
+
+```bash
+# Generate local SSL certificates
 chmod +x scripts/generate_ssl.sh
 ./scripts/generate_ssl.sh
-```
 
-```bash
 # Build and start all services
 docker compose up -d --build
 
@@ -150,6 +228,10 @@ curl http://localhost/api/health
 
 # Should return:
 # {"status":"healthy","app":"ClassOS","version":"1.0.0","environment":"production"}
+
+# Test camera stream
+curl -I http://localhost/api/stream/live        # Camera 0 stream
+curl -I http://localhost/api/stream/headcount   # Camera 1 stream
 ```
 
 ### Access Dashboard
@@ -165,25 +247,32 @@ Login with default credentials:
 
 > ⚠️ **Change the default admin password immediately!**
 
+### Verify LCD
+
+After the backend starts, the LCD should show the ClassOS idle screen:
+```
+   ClassOS  v2.0
+ AI Attendance Sys
+                   
+      Ready...
+```
+
+If the LCD shows nothing:
+- Check `docker compose logs backend | grep LCD`
+- Run `i2cdetect -y 1` to confirm the module is detected
+
 ---
 
-## Step 6: Hardware Device Access (Docker)
+## Step 6: Hardware Device Access (Docker Reference)
 
-For Docker to access the USB webcam and fingerprint sensor, uncomment these lines in `docker-compose.yml`:
+For Docker to access hardware, these device mappings are needed:
 
-```yaml
-backend:
-  devices:
-    - /dev/video0:/dev/video0       # USB Webcam
-    - /dev/ttyS0:/dev/ttyS0         # R307 UART
-  privileged: true
-```
-
-Then restart:
-```bash
-docker compose down
-docker compose up -d
-```
+| Device | Purpose | Docker mapping |
+|--------|---------|----------------|
+| `/dev/video0` | Camera 0 — face recognition | `- /dev/video0:/dev/video0` |
+| `/dev/video2` | Camera 1 — head counting | `- /dev/video2:/dev/video2` |
+| `/dev/ttyS0` | R307 fingerprint sensor | `- /dev/ttyS0:/dev/ttyS0` |
+| `/dev/i2c-1` | I2C LCD display | `- /dev/i2c-1:/dev/i2c-1` |
 
 ---
 
@@ -191,7 +280,7 @@ docker compose up -d
 
 ### View Logs
 ```bash
-docker compose logs -f backend    # Backend logs
+docker compose logs -f backend    # Backend logs (includes LCD, camera, AI events)
 docker compose logs -f db          # Database logs
 ```
 
@@ -201,9 +290,10 @@ docker compose restart backend
 ```
 
 ### Safe Update Process
-When pulling new code from GitHub, it is highly recommended to back up your database first.
+When pulling new code from GitHub, back up your database first:
 ```bash
 cd /opt/ClassOS
+
 # 1. Take a backup of the current database
 docker exec classos-db pg_dump -U classos classos_db > backup_$(date +%Y%m%d).sql
 
@@ -212,38 +302,6 @@ git pull
 
 # 3. Rebuild and restart services
 docker compose up -d --build
-```
-
-### System Cleanup (Freeing up SD Card Space)
-
-If your Raspberry Pi is running out of storage space, you can safely clean up cached Docker builds, old packages, and system logs.
-
-**1. Safe Docker Clean (Keeps Data)**
-Removes unused containers, networks, and dangling images without affecting your live database or face data.
-```bash
-docker system prune -a -f
-docker builder prune -a -f
-```
-
-**2. Deep System Clean (OS Level)**
-Removes cached `.deb` installer files, pip caches, and trims system logs to 50MB.
-```bash
-sudo apt-get clean
-sudo apt-get autoremove -y
-sudo journalctl --vacuum-size=50M
-rm -rf ~/.cache/pip
-npm cache clean --force
-```
-
-**3. Total Factory Reset (Wipes ALL Data)**
-Only use this if you want to completely erase the database, users, and face data to start from scratch.
-```bash
-# Stop and delete containers AND volumes
-docker compose down -v
-# Clean system
-docker system prune -a --volumes -f
-# Re-deploy
-./scripts/deploy_pi.sh
 ```
 
 ### Backup Database
@@ -264,11 +322,12 @@ The Pi 5 with 8GB RAM can handle ClassOS comfortably. Recommended optimizations:
 
 | Setting | Value | Reason |
 |---------|-------|--------|
-| `CAMERA_FPS` | 30 | Most USB webcams support 30fps at 720p |
+| `CAMERA_FPS` | 30 | RPi Camera Modules support 30fps at 720p |
 | `HEAD_COUNT_INTERVAL` | 5 | Run YOLO every 5th frame to save CPU |
 | `DB_POOL_SIZE` | 5 | Adequate for single-classroom use |
 | `YOLO_CONFIDENCE` | 0.5 | Balance between detection and false positives |
 | Docker `--workers` | 1 | Single worker to avoid memory pressure |
+| `FACE_CONFIDENCE_AUTO` | 0.70 | 70% = good balance; lower = more auto-marks |
 
 ---
 
@@ -277,7 +336,11 @@ The Pi 5 with 8GB RAM can handle ClassOS comfortably. Recommended optimizations:
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Backend won't start | DB not ready | Check `docker compose logs db` |
-| Camera feed black | Webcam not detected | Verify USB webcam with `lsusb`, check `/dev/video0` exists |
-| Fingerprint timeout | UART not enabled | Verify `enable_uart=1`, check wiring |
+| Camera 0 feed black | Camera 0 not detected | Verify CSI cable, run `rpicam-hello --list-cameras` |
+| Camera 1 feed missing | Camera 1 not connected | The "Verify Head Count" button will be disabled — this is expected fallback behavior |
+| LCD shows nothing | I2C not detected | Run `i2cdetect -y 1`; check wiring and I2C enabled in raspi-config |
+| LCD shows wrong address | PCF8574 variant | Try `LCD_I2C_ADDRESS=0x3F` in `.env` |
+| Fingerprint timeout | UART not enabled | Verify `enable_uart=1`, check wiring, check `ls /dev/ttyS0` |
 | Slow recognition | CPU overloaded | Reduce `CAMERA_FPS`, increase `HEAD_COUNT_INTERVAL` |
 | Out of memory | Too many models | Use `--workers 1`, reduce `DB_POOL_SIZE` |
+| Head count mode disabled | Camera 1 unavailable | System gracefully disables "Verify Head Count" — connect Camera 1 to CAM/DISP 1 |

@@ -26,8 +26,9 @@ For each student, you must register their biometrics so the AI can identify them
 2. Under the **Face** column, click **Enroll**.
 3. A modal will appear with two options:
    - **Upload Files Tab:** Select 5-10 clear, front-facing photos from your computer and click **Upload**.
-   - **Use Webcam Tab:** Use your device's camera to capture 5-10 live snapshots directly, then click **Upload & Enroll**.
+   - **Use Webcam Tab:** Use your device's camera (browser webcam, USB webcam, or phone camera) to capture 5-10 live snapshots directly, then click **Upload & Enroll**.
 4. The system will automatically generate 128D facial embeddings and store them in the database.
+5. Students can also self-enroll from their student portal (see Section 3).
 
 **Fingerprint Enrollment:**
 1. Under the **Fingerprint** column, click **Enroll**.
@@ -35,8 +36,11 @@ For each student, you must register their biometrics so the AI can identify them
 3. The sensor will capture the print, assign it an internal ID, and store the reference in the database.
    *(Note: If the hardware sensor is disconnected, the system will fall back to "Mock Mode" and simulate a successful enrollment).*
 
+> 💡 **Face Enrollment Sources**: Face images can come from **any camera source** — the teacher's laptop webcam, an external USB webcam, or even a student's phone camera (by opening the dashboard in the phone's browser). Camera 0 on the Pi is used for live attendance, but is NOT required for enrollment.
+
 ### Step 1.4: Enroll Students into a Course
 Before taking attendance, students must be explicitly enrolled into the course they are taking. This can be done in two ways:
+
 **Method A (Admin/Teacher):**
 1. Navigate to the **Courses** page in the dashboard.
 2. Click the **Manage Students** button next to the relevant course.
@@ -56,33 +60,74 @@ Once students and courses are configured, teachers can run automated attendance 
 ### Step 2.1: Start a Session
 1. Navigate to the **Live Attendance** page in the dashboard.
 2. Select the current Course from the dropdown menu.
-3. Click **Start Attendance**.
+3. Click **Start Session**.
 4. The system instantly generates a new Attendance Session and creates a **Tabular Attendance Sheet** with all enrolled students marked as **ABSENT**.
-5. The USB Webcam activates, and the live video feed begins streaming to the dashboard.
+5. The session starts in **Take Attendance mode** by default.
 
-### Step 2.2: Automated AI Scanning
-As students walk into the classroom, the AI engine processes the video feed in real-time:
-- **Head Counting (YOLOv8):** The system counts the total number of people in the frame to ensure no one is missed.
-- **Face Recognition (dlib):** The system identifies faces. When a student is recognized with high confidence, their status on the Tabular Attendance Sheet automatically flips from **ABSENT (Red)** to **PRESENT (Green)**.
-- **Event Log:** A live scrolling log on the dashboard records the exact timestamp and confidence score of every recognition event.
+### Step 2.2: Take Attendance Mode (Camera 0 — Entry Camera)
+After starting a session, you will see two mode buttons at the top of the attendance view.
 
-### Step 2.3: Edge Cases & Fingerprint Fallback
-If the AI detects a face but is unsure of the identity (low confidence), it will flag a **Mismatch/Warning** on the dashboard.
-1. The dashboard will display a **Fingerprint Verification Needed** prompt.
-2. The teacher asks the unrecognized student to place their finger on the sensor.
-3. The teacher clicks **Scan Fingerprint** on the dashboard.
-4. If the fingerprint matches an enrolled student, their attendance is instantly marked **PRESENT** on the sheet.
+The system is in **Take Attendance** mode by default. In this mode:
+- **Camera 0** (connected to CAM/DISP 0 on Raspberry Pi 5) activates and streams the live feed.
+- The **Face Recognition AI** processes each frame in real-time:
+  - **>= 70% confidence**: Student is automatically marked **PRESENT** (green bounding box). Their name and "Present" appears on the physical LCD display.
+  - **30%–69% confidence**: A **Fingerprint Verification Needed** prompt appears on the dashboard. The physical LCD shows the fingerprint prompt. The student places their finger on the R307 sensor.
+  - **< 30% confidence**: Face is labeled "Unknown" and ignored.
+  - **No face detected at all**: A **"Direct Fingerprint Scan"** button is always visible in the dashboard for students who are not being detected (e.g., wearing a hijab, mask, or in poor lighting). They can scan directly without any face detection.
+- The **LCD Display** shows:
+  ```
+  Total Attendee: XX
+  <Student Name>
+     >> Present
+  Mode: ATTENDANCE
+  ```
+- The **Attendance Log** on the dashboard updates in real-time with each student's name, method (FACE/FINGERPRINT), and confidence.
 
-### Step 2.4: Manual Override
+### Step 2.3: Verify Head Count Mode (Camera 1 — Classroom Camera)
+Once most students have arrived and been recognized, switch to **Verify Head Count** mode to ensure no proxy attendance or unrecognized students:
+
+1. Click the **"Verify Head Count"** button at the top of the attendance view.
+2. Camera 0 stops. **Camera 1** (connected to CAM/DISP 1 on Raspberry Pi 5) activates, pointing at the whole classroom.
+3. The **YOLOv8 Nano AI** counts the total number of heads visible in the frame.
+4. The dashboard shows a real-time comparison:
+   - **Present** (from face/fingerprint): `XX`
+   - **Head Count** (from Camera 1): `YY`
+   - **✓ Match** or **✗ Mismatch** result
+5. The **LCD Display** shows:
+   ```
+   Present    =  XX
+   Head Count =  XX
+   ✓ Match!
+   Mode: HEAD COUNT
+   ```
+6. If there's a **Mismatch** (more heads than present), the teacher can ask any unrecognized students to scan their fingerprint.
+
+> 💡 **Important**: The "Verify Head Count" button is automatically disabled if Camera 1 is not connected to the system.
+
+### Step 2.4: Switching Modes Mid-Session
+You can switch between **Take Attendance** and **Verify Head Count** mode at any time during a session:
+- Click either mode button to switch instantly.
+- **All attendance data is preserved** across mode switches — students already marked present remain present.
+- The camera switches automatically (Camera 0 ↔ Camera 1).
+- The LCD display updates to reflect the current mode.
+
+### Step 2.5: Edge Cases & Fingerprint Fallback
+- **Low confidence face (30–69%)**: Dashboard shows orange "Fingerprint Verification Needed" card. Teacher clicks "Scan Fingerprint" and student places finger on R307 sensor.
+- **No face detection**: Teacher clicks "Direct Fingerprint Scan" button (always visible in attendance mode). Student scans directly.
+- The LCD shows a fingerprint prompt in both cases.
+
+### Step 2.6: Manual Override
 At any point during the session, the teacher can switch to the **Sheet** tab to view the full class roster.
 - Next to every student, there is an override dropdown.
 - The teacher can manually change a student's status to **Present**, **Absent**, **Late**, or **Excused**.
 
-### Step 2.5: End Session
-1. Once all students have arrived and the head count matches the recognized count, the teacher clicks **End Session**.
-2. The camera feed is turned off, and the attendance records for that session are permanently locked into the PostgreSQL database.
+### Step 2.7: End Session
+1. Once satisfied, the teacher clicks **End Session**.
+2. All cameras are turned off.
+3. The LCD shows the ClassOS idle/branding screen.
+4. The attendance records for that session are permanently locked into the PostgreSQL database.
 
-### Step 2.6: Analytics & Exporting Course Reports
+### Step 2.8: Analytics & Exporting Course Reports
 Teachers and Admins can export the full attendance report for any course:
 1. Navigate to the **Courses** page.
 2. Click the **View Report** button on any course card.
@@ -102,12 +147,14 @@ Students have a dedicated portal where they can manage their own biometrics, cou
 3. Upon logging in, the student is greeted by their personalized dashboard.
 
 ### Step 3.2: Self-Service Face Enrollment
-Instead of relying on the admin, students can upload their own face data:
+Instead of relying on the admin, students can upload their own face data from any camera-equipped device:
 1. Navigate to the **Face Enrollment** page.
 2. The student can check their current enrollment status (Registered / Not Registered).
-3. The student can choose to **Upload Files** (5-10 clear front-facing images) or **Use Webcam** to capture images directly.
+3. The student can choose to:
+   - **Upload Files**: Select 5-10 clear front-facing images from their device.
+   - **Use Webcam**: Capture images live using their **browser webcam** (laptop webcam, USB webcam, or phone camera — all work via browser `getUserMedia`).
 4. Click **Upload & Enroll**. The AI engine will extract their facial embeddings securely.
-5. If a student's appearance changes significantly, they can click **Delete Data** to reset their profile and re-upload new samples.
+5. If a student's appearance changes significantly (new glasses, different hair), they can click **Delete Data** to reset their profile and re-upload new samples.
 
 ### Step 3.3: Course Enrollment
 1. Navigate to the **Available Courses** page.
@@ -120,3 +167,16 @@ Instead of relying on the admin, students can upload their own face data:
 2. The student will see a data table listing all their enrolled courses.
 3. For each course, the table displays the number of classes they were marked present, the total number of classes held, and their computed attendance percentage.
 4. The percentage is color-coded to easily identify if the student is falling behind the required attendance threshold.
+
+---
+
+## 4. Recognition Threshold Reference
+
+| Confidence Score | Action | Method Logged | LCD / Dashboard |
+|-----------------|--------|---------------|-----------------|
+| **>= 70%** | Auto-mark PRESENT | `FACE` | "Student Name >> Present" |
+| **30% – 69%** | Prompt fingerprint scan | `FINGERPRINT` (after scan) | Fingerprint prompt |
+| **< 30%** | Unknown / ignored | — | No action |
+| **No face at all** | Direct fingerprint scan available | `FINGERPRINT` | Direct scan button |
+
+> ⚠️ **Note**: All thresholds are configurable via `.env` — `FACE_CONFIDENCE_AUTO` and `FACE_CONFIDENCE_FINGERPRINT`.

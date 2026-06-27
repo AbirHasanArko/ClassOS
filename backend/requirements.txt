@@ -31,6 +31,13 @@ ultralytics==8.2.27
 # ----- Fingerprint Sensor -----
 pyserial==3.5
 
+# ----- LCD Display (20x4 I2C — HD44780 + PCF8574 backpack) -----
+# RPLCD: High-level LCD driver for HD44780 displays
+# smbus2: Pure-Python I2C/SMBus implementation for Raspberry Pi GPIO I2C
+# Note: These packages are harmless on non-Pi hardware (they fall back gracefully).
+RPLCD>=1.3.0
+smbus2>=0.4.0
+
 # ----- System Monitoring -----
 psutil==5.9.8
 

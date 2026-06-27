@@ -1,7 +1,10 @@
 import client from './client';
 
-export const startSession = async (courseId) => {
-  const response = await client.post('/attendance/sessions', { course_id: courseId });
+export const startSession = async (courseId, mode = 'attendance') => {
+  const response = await client.post('/attendance/sessions', {
+    course_id: courseId,
+    mode: mode,
+  });
   return response.data;
 };
 
@@ -10,10 +13,15 @@ export const endSession = async (sessionId) => {
   return response.data;
 };
 
+export const switchSessionMode = async (sessionId, mode) => {
+  const response = await client.post(`/attendance/sessions/${sessionId}/mode`, { mode });
+  return response.data;
+};
+
 export const markAttendanceManual = async (sessionId, studentId, status) => {
   const response = await client.post(`/attendance/sessions/${sessionId}/attendance`, {
     student_id: studentId,
-    status: status
+    status: status,
   });
   return response.data;
 };

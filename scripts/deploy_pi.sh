@@ -22,11 +22,15 @@ else
     echo "Warning: No USB webcam detected at /dev/video*. Plug in a USB webcam before starting."
 fi
 
-# 3. Enable UART for R307 Fingerprint Sensor
-echo "[3/7] Enabling UART for fingerprint sensor..."
+# 3. Enable Hardware Interfaces (UART & I2C)
+echo "[3/7] Enabling hardware interfaces..."
 if ! grep -q "enable_uart=1" /boot/firmware/config.txt; then
     echo "enable_uart=1" | sudo tee -a /boot/firmware/config.txt
     echo "dtoverlay=uart0" | sudo tee -a /boot/firmware/config.txt
+fi
+
+if ! grep -q "dtparam=i2c_arm=on" /boot/firmware/config.txt; then
+    echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt
 fi
 
 # Disable serial console (conflicts with UART)
@@ -62,7 +66,19 @@ cd ClassOS
 # Create .env from template if not exists
 if [ ! -f ".env" ]; then
     cp .env.example .env
-    echo "Created .env file. Please edit it with your settings:"
+    echo "Created .env file."
+    
+    # Auto-detect cameras for v2.0
+    cameras=$(ls /dev/video* 2>/dev/null | grep -E '/dev/video[0-9]+$')
+    if [ $(echo "$cameras" | wc -l) -ge 2 ]; then
+        cam2=$(echo "$cameras" | sed -n '3p')
+        if [ -z "$cam2" ]; then cam2=$(echo "$cameras" | sed -n '2p'); fi
+        cam2_index=$(echo $cam2 | sed 's/[^0-9]*//g')
+        sed -i "s/^CAMERA_1_DEVICE_INDEX=.*/CAMERA_1_DEVICE_INDEX=$cam2_index/" .env
+        echo "Auto-configured CAMERA_1_DEVICE_INDEX=$cam2_index in .env"
+    fi
+    
+    echo "Please edit it with your settings:"
     echo "  nano /opt/ClassOS/.env"
 fi
 
@@ -78,11 +94,13 @@ if [ ! -f "models/yolov8n.pt" ]; then
 fi
 
 # 7. Enable Hardware Access in Docker Compose
-echo "[7/8] Enabling USB Webcam and UART in docker-compose.yml..."
+echo "[7/8] Enabling hardware devices in docker-compose.yml..."
 if grep -q "# devices:" docker-compose.yml; then
     sed -i 's/# devices:/devices:/' docker-compose.yml
     sed -i 's/#   - \/dev\/video0:\/dev\/video0/  - \/dev\/video0:\/dev\/video0/' docker-compose.yml
+    sed -i 's/#   - \/dev\/video2:\/dev\/video2/  - \/dev\/video2:\/dev\/video2/' docker-compose.yml
     sed -i 's/#   - \/dev\/ttyS0:\/dev\/ttyS0/  - \/dev\/ttyS0:\/dev\/ttyS0/' docker-compose.yml
+    sed -i 's/#   - \/dev\/i2c-1:\/dev\/i2c-1/  - \/dev\/i2c-1:\/dev\/i2c-1/' docker-compose.yml
     sed -i 's/# privileged: true/privileged: true/' docker-compose.yml
     echo "Hardware access enabled."
 else

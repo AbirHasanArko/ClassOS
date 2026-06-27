@@ -56,11 +56,14 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 
 ## 🚀 Core Features
 
-- **Automated AI Face Recognition:** Real-time face detection using dlib algorithms with dynamic confidence-based auto-marking.
-- **YOLOv8 Head Counting:** Nano-model AI sweeps the classroom to detect mismatched attendance (e.g. 20 students recognized, but 25 heads counted).
-- **R307 Biometric Fallback:** Seamless fallback to physical fingerprint scanning over UART for occluded faces (hijabs, masks, poor lighting).
-- **Live MJPEG Video Streaming:** Teachers watch the AI pipeline process the classroom feed in real-time from their web dashboard.
-- **Real-Time WebSocket Sync:** As students are detected, their names instantly appear on the teacher's screen without refreshing.
+- **Dual-Camera Attendance System:** Two cameras serving distinct roles — Camera 0 (entry door, face recognition) and Camera 1 (classroom ceiling, head counting). Both modes switchable mid-session without data loss.
+- **Take Attendance Mode:** Camera 0 runs the face recognition pipeline. Students are auto-marked present when entering the room.
+- **Verify Head Count Mode:** Camera 1 runs YOLOv8 Nano to count all heads in the classroom and compares vs recognized attendance. Instantly flags mismatches.
+- **Automated AI Face Recognition:** Real-time face detection using dlib algorithms. Auto-marks at ≥70% confidence, requests fingerprint at 30–69%, ignores unknowns <30%.
+- **R307 Biometric Fallback:** Seamless fallback to physical fingerprint scanning over UART. Available even when no face is detected at all.
+- **20×4 LCD Display:** Real-time hardware status display shows "Total Attendee: X / Name Present" during attendance, and "Present = X / Head Count = X / ✓ Match" during head count. Dashboard mirrors the LCD in real-time.
+- **Live MJPEG Video Streaming:** Teachers watch Camera 0 or Camera 1 (mode-dependent) with annotated AI bounding boxes in real-time.
+- **Real-Time WebSocket Sync:** As students are detected, their full names instantly appear on the teacher's screen without refreshing.
 - **Full-Stack Analytics:** Automatic data aggregation with CSV exports, visual charts, and historical session logs.
 - **Role-Based Access Control:** Distinct experiences for Admins, Teachers, and Students.
 - **Ghost-Session Resiliency:** The backend automatically recovers and cleans up abandoned sessions if a teacher's laptop disconnects unexpectedly.
@@ -149,15 +152,16 @@ graph TD
 
 ```text
 ClassOS/
-├── ai_engine/              # Computer vision models (dlib ResNet, YOLOv8 head counter)
-├── attendance_engine/      # Core orchestration tying AI recognitions to DB attendance sessions
+├── ai_engine/              # FaceRecognitionPipeline (Camera 0) + HeadCountPipeline (Camera 1)
+├── attendance_engine/      # Dual-mode orchestrator (Take Attendance / Verify Head Count)
 ├── backend/                # FastAPI application layer (REST endpoints, WebSockets, Auth)
-├── camera_service/         # Handles raw frame capture from USB Webcam and MJPEG encoding
+├── camera_service/         # Dual-camera management (camera_0, camera_1 singleton instances)
 ├── database/               # Database connection logic and Alembic migration scripts
 ├── docker/                 # Dockerfiles used to containerize the different services
 ├── docs/                   # Extended project documentation (ER Diagrams, API references)
 ├── fingerprint_service/    # Hardware serial communication (UART) for the R307 sensor
 ├── frontend/               # The React SPA built with Vite and Tailwind CSS
+├── lcd_service/            # 20×4 I2C LCD driver (RPLCD + smbus2, graceful fallback)
 ├── models/                 # Shared SQLAlchemy ORM models defining the database schema
 ├── nginx/                  # Reverse proxy configuration for routing traffic in production
 ├── scripts/                # Utility and hardware testing scripts (seed_db.py, test_camera.py)
@@ -232,11 +236,14 @@ ClassOS uses a dual-model approach to ensure extremely high accuracy without bog
 
 ### 🎯 Recognition Thresholds
 
-| Confidence Score | Action Taken | Logging Method |
-|------------------|--------------|----------------|
-| **> 75%** | Automatic Attendance | `FACE` |
-| **60% - 75%** | Fingerprint Verification Required | `FINGERPRINT` |
-| **< 60%** | Ignored / Labeled Unknown | None |
+| Confidence Score | Action Taken | LCD | Logging Method |
+|------------------|--------------|-----|----------------|
+| **≥ 70%** | Automatic Attendance | "Name >> Present" | `FACE` |
+| **30% – 69%** | Fingerprint Verification Prompt | "Fingerprint Needed!" | `FINGERPRINT` |
+| **< 30%** | Ignored / Labeled Unknown | — | None |
+| **No face** | Direct Fingerprint Scan available | Prompt button visible | `FINGERPRINT` |
+
+> ⚙️ All thresholds are configurable: `FACE_CONFIDENCE_AUTO=0.70`, `FACE_CONFIDENCE_FINGERPRINT=0.30` in `.env`
 
 ---
 
@@ -249,10 +256,14 @@ ClassOS requires direct hardware integration. The Raspberry Pi 5 orchestrates st
 | Component | Model | Interface | Purpose |
 |-----------|-------|-----------|---------|
 | Compute | Raspberry Pi 5 (8GB) | — | Main edge server |
-| Camera | UVC-compatible Webcam | USB 3.0 | Realtime video capture |
+| Camera 0 | RPi Camera Module v2/v3 | CSI (CAM/DISP 0) | Entry door — face recognition |
+| Camera 1 | RPi Camera Module v2/v3 | CSI (CAM/DISP 1) | Classroom ceiling — head counting |
 | Biometric | R307 Optical Sensor | UART (GPIO) | Identity fallback verification |
+| Display | 20×4 HD44780 LCD + PCF8574 | I2C (GPIO 2/3) | Real-time status feedback |
 
-### 📟 R307 Wiring Guide
+> 💡 **Fallback**: If only one camera is available, connect it to CAM/DISP 0. The "Verify Head Count" mode is automatically disabled.
+
+### 📠 R307 Wiring Guide
 
 | R307 Pin | Pi 5 GPIO Pin | Wire Color |
 |----------|---------------|------------|
@@ -261,7 +272,20 @@ ClassOS requires direct hardware integration. The Raspberry Pi 5 orchestrates st
 | TX | Pin 10 (GPIO15 / RXD1) | Yellow |
 | RX | Pin 8 (GPIO14 / TXD1) | Green |
 
-> ⚠️ **Important:** You must enable UART on the Raspberry Pi for the fingerprint scanner to work. Add `enable_uart=1` and `dtoverlay=uart0` to your `/boot/firmware/config.txt`.
+### 📠 LCD I2C Wiring Guide
+
+| LCD Backpack Pin | Pi 5 GPIO Pin |
+|-----------------|---------------|
+| VCC | Pin 2 or 4 (5V) |
+| GND | Pin 6 (GND) |
+| SDA | Pin 3 (GPIO2 / SDA1) |
+| SCL | Pin 5 (GPIO3 / SCL1) |
+
+> ⚠️ Enable I2C: `sudo raspi-config` → Interface Options → I2C → Enable. Default address: `0x27`.
+
+> ⚠️ Enable UART for fingerprint: Add `enable_uart=1` and `dtoverlay=uart0` to `/boot/firmware/config.txt`.
+
+📖 Full wiring details: **[Hardware Wiring Guide](docs/hardware_wiring.md)**
 
 ---
 
@@ -382,6 +406,10 @@ For deeper technical dives, please refer to the dedicated documentation files:
 
 ## 🗺️ Future Roadmap
 
+- [x] **Dual-Camera Support:** Camera 0 for face recognition (entry), Camera 1 for head counting (classroom ceiling). ✅ Implemented v2.0
+- [x] **20×4 LCD Display:** Real-time hardware feedback with student names, attendance count, and head count match/mismatch. ✅ Implemented v2.0
+- [x] **Improved Recognition Thresholds:** 70% auto-mark, 30–69% fingerprint prompt. ✅ Updated v2.0
+- [x] **Split Session Modes:** Take Attendance vs Verify Head Count — switchable mid-session. ✅ Implemented v2.0
 - [ ] **Offline Resilience:** Cache attendance data locally on the Raspberry Pi if the Wi-Fi drops and auto-sync when connection is restored.
 - [ ] **Biometric Data Encryption & Privacy:** Implement encryption at rest for biometric vectors and automated scripts to purge data for graduated students.
 - [ ] **Automated Notifications:** Email/SMS alerts for students when attendance drops below threshold, and weekly CSV reports for teachers.
@@ -389,7 +417,7 @@ For deeper technical dives, please refer to the dedicated documentation files:
 - [ ] **Calendar Integrations:** Auto-start hardware sessions exactly when classes are scheduled in Google Calendar or Outlook.
 - [ ] **Teaching Assistant (TA) Role:** A new permission tier that can start/stop sessions without destructive capabilities.
 - [ ] **Progressive Web App (PWA):** Make the frontend installable natively on iOS/Android home screens.
-- [ ] **Multi-Camera Support:** Support for an array of RTSP IP cameras stationed around a large lecture hall.
+- [ ] **RTSP Multi-Camera Array:** Support for an array of RTSP IP cameras stationed around a large lecture hall.
 - [ ] **RFID Integration:** Add a tertiary fallback mechanism using standard student RFID cards.
 
 ---

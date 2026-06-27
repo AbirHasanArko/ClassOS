@@ -60,6 +60,7 @@ erDiagram
         uuid course_id FK
         uuid teacher_id FK
         enum status "ACTIVE, COMPLETED, CANCELLED"
+        string mode "attendance, headcount"
         int head_count
         int recognized_count
         timestamp started_at
@@ -103,5 +104,21 @@ erDiagram
 3. **Student**: Profile data for a student. Tied to a User account. Contains boolean flags indicating if their facial embeddings or fingerprints have been successfully enrolled.
 4. **Course**: Represents an academic class (e.g. `CS101`). 
 5. **Enrollment**: A many-to-many join table mapping Students to Courses. Attendance sessions will only track students explicitly enrolled in the course.
-6. **AttendanceSession**: A single real-world class meeting (e.g., today's lecture). Tracks the total head count calculated by YOLOv8 vs the total recognized count calculated by dlib.
+6. **AttendanceSession**: A single real-world class meeting (e.g., today's lecture). 
+   - `mode` — Current active mode: `"attendance"` (Camera 0 face recognition) or `"headcount"` (Camera 1 YOLOv8). Persisted so the engine can recover the correct mode after a restart or mode switch.
+   - `head_count` — Latest head count from Camera 1 (YOLOv8), updated in real-time during head count mode.
+   - `recognized_count` — Number of students auto-marked present (face or fingerprint). Updated each time a student is marked.
 7. **Attendance (Record)**: A single student's attendance entry for a specific session. Tracks whether they were marked Present/Absent, and the exact method (Face vs Fingerprint) with the AI confidence score.
+
+## Notes on Mode Field
+
+The `mode` column on `AttendanceSession` stores the **last active** mode for the session. This allows the Attendance Engine to:
+- Recover the correct camera assignment after a server restart
+- Resume head count from where it left off
+- Maintain consistent LCD display state
+
+Modes:
+| Value | Camera Used | AI Model | Purpose |
+|-------|-------------|----------|---------|
+| `"attendance"` | Camera 0 (CAM/DISP 0) | dlib face recognition | Mark students present via face/fingerprint |
+| `"headcount"` | Camera 1 (CAM/DISP 1) | YOLOv8 Nano | Count total heads in classroom |

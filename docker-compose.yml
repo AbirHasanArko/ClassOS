@@ -40,8 +40,19 @@ services:
       APP_ENV: ${APP_ENV:-production}
       DEBUG: ${DEBUG:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Camera 0 — entry/face recognition camera (CAM/DISP 0 on RPi5)
       CAMERA_DEVICE_INDEX: ${CAMERA_DEVICE_INDEX:-0}
+      # Camera 1 — classroom overhead / head count camera (CAM/DISP 1 on RPi5)
+      # Default /dev/video2 because RPi Camera Module on CAM 1 appears as video2
+      CAMERA_1_DEVICE_INDEX: ${CAMERA_1_DEVICE_INDEX:-2}
       FINGERPRINT_MOCK_MODE: ${FINGERPRINT_MOCK_MODE:-true}
+      # LCD display settings
+      LCD_ENABLED: ${LCD_ENABLED:-true}
+      LCD_I2C_ADDRESS: ${LCD_I2C_ADDRESS:-0x27}
+      LCD_I2C_BUS: ${LCD_I2C_BUS:-1}
+      # AI thresholds
+      FACE_CONFIDENCE_AUTO: ${FACE_CONFIDENCE_AUTO:-0.70}
+      FACE_CONFIDENCE_FINGERPRINT: ${FACE_CONFIDENCE_FINGERPRINT:-0.30}
     volumes:
       - face_data:/app/data/faces
     ports:
@@ -49,11 +60,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # On Raspberry Pi, uncomment these for hardware access:
-    # devices:
-    #   - /dev/video0:/dev/video0       # USB Webcam
-    #   - /dev/ttyS0:/dev/ttyS0         # R307 UART
-    # privileged: true
+    # ── Hardware device access ──────────────────────────────────────────────
+    # Raspberry Pi hardware device mappings.
+    # Use `ls /dev/video*` and `i2cdetect -y 1` to confirm indices.
+    devices:
+      - /dev/video0:/dev/video0       # Camera 0 — entry camera (face recognition)
+      - /dev/video2:/dev/video2       # Camera 1 — overhead camera (head counting)
+      - /dev/ttyS0:/dev/ttyS0         # R307 fingerprint sensor (UART)
+      - /dev/i2c-1:/dev/i2c-1         # I2C bus for 20x4 LCD display
+    privileged: true
     networks:
       - classos-net
 
