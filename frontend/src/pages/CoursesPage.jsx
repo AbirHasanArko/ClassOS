@@ -14,7 +14,7 @@ export const CoursesPage = () => {
   const [teachers, setTeachers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCourse, setNewCourse] = useState({
-    course_code: '', course_name: '', schedule: '', teacher_id: ''
+    course_code: '', course_name: '', schedule: '', teacher_ids: []
   });
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -60,14 +60,31 @@ export const CoursesPage = () => {
     }
   }, [currentUser]);
 
+  const handleToggleTeacher = (isEdit, teacherId) => {
+    if (isEdit) {
+      setEditCourseData(prev => {
+        const nextIds = new Set(prev.teacher_ids || []);
+        if (nextIds.has(teacherId)) nextIds.delete(teacherId);
+        else nextIds.add(teacherId);
+        return { ...prev, teacher_ids: Array.from(nextIds) };
+      });
+    } else {
+      setNewCourse(prev => {
+        const nextIds = new Set(prev.teacher_ids || []);
+        if (nextIds.has(teacherId)) nextIds.delete(teacherId);
+        else nextIds.add(teacherId);
+        return { ...prev, teacher_ids: Array.from(nextIds) };
+      });
+    }
+  };
+
   const handleAddCourse = async (e) => {
     e.preventDefault();
     try {
       const payload = { ...newCourse };
-      if (!payload.teacher_id) delete payload.teacher_id;
       await createCourse(payload);
       setShowAddModal(false);
-      setNewCourse({ course_code: '', course_name: '', schedule: '', teacher_id: '' });
+      setNewCourse({ course_code: '', course_name: '', schedule: '', teacher_ids: [] });
       fetchCourses();
     } catch (err) {
       console.error('Failed to create course', err);
@@ -154,7 +171,7 @@ export const CoursesPage = () => {
     e.preventDefault();
     try {
       const payload = { ...editCourseData };
-      if (!payload.teacher_id) delete payload.teacher_id;
+      if (!payload.teacher_ids) payload.teacher_ids = [];
       await updateCourse(editCourseData.id, payload);
       setShowEditModal(false);
       fetchCourses();
@@ -177,11 +194,14 @@ export const CoursesPage = () => {
     }
   };
 
-  const getTeacherName = (teacherId) => {
+  const getTeacherNames = (courseTeacherIds) => {
     if (currentUser?.role === 'teacher') return 'Your Course';
-    if (!teacherId) return 'No Teacher Assigned';
-    const teacher = teachers.find(t => t.profile_id === teacherId);
-    return teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown Teacher';
+    if (!courseTeacherIds || courseTeacherIds.length === 0) return 'No Teacher Assigned';
+    const names = courseTeacherIds.map(id => {
+      const teacher = teachers.find(t => t.profile_id === id);
+      return teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown';
+    });
+    return names.join(', ');
   };
 
   return (
@@ -222,7 +242,7 @@ export const CoursesPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm font-medium text-foreground mb-1">
-                {getTeacherName(course.teacher_id)}
+                {getTeacherNames(course.teacher_ids)}
               </p>
               <p className="text-sm text-muted-foreground mb-4">{course.schedule || 'No schedule set'}</p>
               <div className="flex flex-col gap-2">
@@ -298,17 +318,24 @@ export const CoursesPage = () => {
                 </div>
                 {currentUser?.role === 'admin' && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Assign Teacher (Optional)</label>
-                    <select
-                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      value={newCourse.teacher_id || ''}
-                      onChange={(e) => setNewCourse({ ...newCourse, teacher_id: e.target.value })}
-                    >
-                      <option value="">-- No Teacher --</option>
-                      {teachers.map(t => (
-                        <option key={t.profile_id} value={t.profile_id}>{t.first_name} {t.last_name}</option>
-                      ))}
-                    </select>
+                    <label className="text-sm font-medium">Assign Teachers</label>
+                    <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                      {teachers.length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-2">No teachers found.</p>
+                      ) : (
+                        teachers.map(t => (
+                          <label key={t.profile_id} className="flex items-center gap-2 text-sm p-1 hover:bg-muted/50 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={(newCourse.teacher_ids || []).includes(t.profile_id)}
+                              onChange={() => handleToggleTeacher(false, t.profile_id)}
+                              className="rounded border-gray-300"
+                            />
+                            {t.first_name} {t.last_name}
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-end gap-2 pt-2">
@@ -359,17 +386,24 @@ export const CoursesPage = () => {
                 </div>
                 {currentUser?.role === 'admin' && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Assign Teacher (Optional)</label>
-                    <select
-                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      value={editCourseData.teacher_id || ''}
-                      onChange={(e) => setEditCourseData({ ...editCourseData, teacher_id: e.target.value })}
-                    >
-                      <option value="">-- No Teacher --</option>
-                      {teachers.map(t => (
-                        <option key={t.profile_id} value={t.profile_id}>{t.first_name} {t.last_name}</option>
-                      ))}
-                    </select>
+                    <label className="text-sm font-medium">Assign Teachers</label>
+                    <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                      {teachers.length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-2">No teachers found.</p>
+                      ) : (
+                        teachers.map(t => (
+                          <label key={t.profile_id} className="flex items-center gap-2 text-sm p-1 hover:bg-muted/50 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={(editCourseData.teacher_ids || []).includes(t.profile_id)}
+                              onChange={() => handleToggleTeacher(true, t.profile_id)}
+                              className="rounded border-gray-300"
+                            />
+                            {t.first_name} {t.last_name}
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-end gap-2 pt-2">

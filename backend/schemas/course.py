@@ -8,16 +8,16 @@ class CourseBase(BaseModel):
     schedule: Optional[str] = None
 
 class CourseCreate(CourseBase):
-    teacher_id: Optional[UUID] = None
+    teacher_ids: List[UUID] = []
 
 class CourseUpdate(BaseModel):
     course_name: Optional[str] = None
     schedule: Optional[str] = None
-    teacher_id: Optional[UUID] = None
+    teacher_ids: Optional[List[UUID]] = None
 
 class CourseOut(CourseBase):
     id: UUID
-    teacher_id: Optional[UUID] = None
+    teacher_ids: List[UUID] = []
     
     model_config = ConfigDict(from_attributes=True)
 

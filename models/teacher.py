@@ -31,7 +31,7 @@ class Teacher(Base, UUIDMixin, TimestampMixin):
 
     # ----- Relationships -----
     user = relationship("User", back_populates="teacher_profile")
-    courses = relationship("Course", back_populates="teacher", cascade="all, delete-orphan")
+    courses = relationship("Course", secondary="course_teachers", back_populates="teachers")
     sessions = relationship(
         "AttendanceSession", back_populates="teacher", cascade="all, delete-orphan"
     )

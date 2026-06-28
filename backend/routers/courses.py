@@ -24,22 +24,34 @@ async def create_course(
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Course code already exists")
 
-    # If teacher creates course and teacher_id not provided, assign themselves
-    teacher_id = course.teacher_id
-    if not teacher_id and current_user.role == UserRole.TEACHER:
+    # If teacher creates course and teacher_ids not provided, assign themselves
+    teacher_ids = course.teacher_ids
+    if not teacher_ids and current_user.role == UserRole.TEACHER:
         if current_user.teacher_profile:
-            teacher_id = current_user.teacher_profile.id
+            teacher_ids = [current_user.teacher_profile.id]
 
     new_course = Course(
         course_code=course.course_code,
         course_name=course.course_name,
         schedule=course.schedule,
-        teacher_id=teacher_id
     )
+    
+    if teacher_ids:
+        from models.teacher import Teacher
+        res_teachers = await db.execute(select(Teacher).where(Teacher.id.in_(teacher_ids)))
+        new_course.teachers = res_teachers.scalars().all()
+
     db.add(new_course)
     await db.commit()
     await db.refresh(new_course)
-    return new_course
+    
+    return {
+        "id": new_course.id,
+        "course_code": new_course.course_code,
+        "course_name": new_course.course_name,
+        "schedule": new_course.schedule,
+        "teacher_ids": [t.id for t in new_course.teachers]
+    }
 
 @router.get("/", response_model=CourseList)
 async def get_courses(
@@ -48,11 +60,11 @@ async def get_courses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = select(Course)
+    query = select(Course).options(selectinload(Course.teachers))
     
     # Filter by teacher if user is a teacher
     if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
-        query = query.where(Course.teacher_id == current_user.teacher_profile.id)
+        query = query.where(Course.teachers.any(id=current_user.teacher_profile.id))
         
     # Get total
     count_query = select(func.count()).select_from(query.subquery())
@@ -64,8 +76,18 @@ async def get_courses(
     result = await db.execute(query)
     courses = result.scalars().all()
 
+    items = []
+    for c in courses:
+        items.append({
+            "id": c.id,
+            "course_code": c.course_code,
+            "course_name": c.course_name,
+            "schedule": c.schedule,
+            "teacher_ids": [t.id for t in c.teachers]
+        })
+
     return {
-        "items": courses,
+        "items": items,
         "total": total
     }
 
@@ -75,13 +97,19 @@ async def get_course(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Course).where(Course.id == course_id))
+    result = await db.execute(select(Course).options(selectinload(Course.teachers)).where(Course.id == course_id))
     course = result.scalar_one_or_none()
     
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
         
-    return course
+    return {
+        "id": course.id,
+        "course_code": course.course_code,
+        "course_name": course.course_name,
+        "schedule": course.schedule,
+        "teacher_ids": [t.id for t in course.teachers]
+    }
 
 @router.get("/{course_id}/students", response_model=list[UUID])
 async def get_course_students(
@@ -140,7 +168,7 @@ async def update_course(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
 ):
-    result = await db.execute(select(Course).where(Course.id == course_id))
+    result = await db.execute(select(Course).options(selectinload(Course.teachers)).where(Course.id == course_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -149,12 +177,24 @@ async def update_course(
         course.course_name = course_update.course_name
     if course_update.schedule is not None:
         course.schedule = course_update.schedule
-    if course_update.teacher_id is not None:
-        course.teacher_id = course_update.teacher_id
+    if course_update.teacher_ids is not None:
+        from models.teacher import Teacher
+        if not course_update.teacher_ids:
+            course.teachers = []
+        else:
+            res_teachers = await db.execute(select(Teacher).where(Teacher.id.in_(course_update.teacher_ids)))
+            course.teachers = res_teachers.scalars().all()
 
     await db.commit()
     await db.refresh(course)
-    return course
+    
+    return {
+        "id": course.id,
+        "course_code": course.course_code,
+        "course_name": course.course_name,
+        "schedule": course.schedule,
+        "teacher_ids": [t.id for t in course.teachers]
+    }
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_course(

@@ -59,17 +59,18 @@ async def get_users(
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     from sqlalchemy.orm import selectinload
-    # Get all admins and teachers
     query = select(User).options(
         selectinload(User.teacher_profile),
         selectinload(User.admin_profile)
-    ).where((User.role == UserRole.ADMIN) | (User.role == UserRole.TEACHER))
+    )
     
     result = await db.execute(query)
-    users = result.scalars().all()
+    all_users = result.scalars().all()
     
     items = []
-    for u in users:
+    for u in all_users:
+        if u.role not in (UserRole.ADMIN, UserRole.TEACHER):
+            continue
         item = {
             "id": u.id,
             "email": u.email,
