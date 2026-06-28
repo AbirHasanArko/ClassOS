@@ -107,7 +107,8 @@ export const StudentsPage = () => {
       fetchStudents();
     } catch (err) {
       console.error('Failed to upload faces', err);
-      alert('Failed to upload face images. Ensure each image contains exactly one visible face.');
+      const errMsg = err.response?.data?.detail || 'Failed to upload face images. Ensure each image contains exactly one visible face.';
+      alert(`Upload failed: ${errMsg}`);
     } finally {
       setIsUploading(false);
     }
