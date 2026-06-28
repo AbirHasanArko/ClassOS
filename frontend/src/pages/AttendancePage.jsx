@@ -140,6 +140,15 @@ export const AttendancePage = () => {
     fetchCourses();
   }, []);
 
+  const fetchRoster = useCallback(async (sessionId) => {
+    try {
+      const data = await getSessionRoster(sessionId);
+      setRoster(data);
+    } catch (err) {
+      console.error('Failed to fetch roster', err);
+    }
+  }, []);
+
   // ── Process incoming WebSocket messages
   useEffect(() => {
     if (messages.length === 0) return;
@@ -197,15 +206,6 @@ export const AttendancePage = () => {
         break;
     }
   }, [messages, activeSession, fetchRoster]);
-
-  const fetchRoster = useCallback(async (sessionId) => {
-    try {
-      const data = await getSessionRoster(sessionId);
-      setRoster(data);
-    } catch (err) {
-      console.error('Failed to fetch roster', err);
-    }
-  }, []);
 
   // ── Session controls
   const handleStartSession = async () => {
