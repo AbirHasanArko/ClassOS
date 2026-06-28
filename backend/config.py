@@ -3,7 +3,7 @@ ClassOS — Centralized Configuration
 Loads all settings from environment variables / .env file using Pydantic BaseSettings.
 """
 
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 
@@ -54,6 +54,55 @@ class Settings(BaseSettings):
     # Used exclusively for YOLOv8 head counting in Verify Head Count mode.
     # If unavailable, the system gracefully falls back to single-camera mode.
     CAMERA_1_DEVICE_INDEX: int = 2  # /dev/video2 (CAM 1 / DISP 1 on RPi5)
+
+    # ----- USB Webcam Fallback -----
+    # Comma-separated list of device indices to try when the preferred
+    # camera (CAMERA_DEVICE_INDEX or CAMERA_1_DEVICE_INDEX) cannot be opened.
+    # The system probes each index in order and uses the first that opens.
+    # Example in .env: CAMERA_USB_FALLBACK_INDICES=1,3,4
+    #
+    # Shared list used by both Camera 0 and Camera 1 unless overridden below.
+    CAMERA_USB_FALLBACK_INDICES: List[int] = [1, 3, 4]
+
+    # Per-camera overrides — set these if Camera 0 and Camera 1 should each
+    # fall back to different USB devices (e.g., two separate USB webcams).
+    # Leave unset (empty string in .env) to use the shared list above.
+    # Example: CAMERA_0_USB_FALLBACK_INDICES=1
+    #          CAMERA_1_USB_FALLBACK_INDICES=3
+    CAMERA_0_USB_FALLBACK_INDICES: Optional[List[int]] = None
+    CAMERA_1_USB_FALLBACK_INDICES: Optional[List[int]] = None
+
+    @field_validator(
+        "CAMERA_USB_FALLBACK_INDICES",
+        "CAMERA_0_USB_FALLBACK_INDICES",
+        "CAMERA_1_USB_FALLBACK_INDICES",
+        mode="before",
+    )
+    @classmethod
+    def parse_fallback_indices(cls, v):
+        """Accept a plain list (from code) or a comma-separated string (from .env).
+        An empty string means 'not set' and returns None (uses shared fallback).
+        """
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return None
+            return [int(x.strip()) for x in v.split(",") if x.strip()]
+        return v
+
+    @property
+    def camera_0_fallback_indices(self) -> List[int]:
+        """Effective fallback list for Camera 0."""
+        return self.CAMERA_0_USB_FALLBACK_INDICES \
+            if self.CAMERA_0_USB_FALLBACK_INDICES is not None \
+            else self.CAMERA_USB_FALLBACK_INDICES
+
+    @property
+    def camera_1_fallback_indices(self) -> List[int]:
+        """Effective fallback list for Camera 1."""
+        return self.CAMERA_1_USB_FALLBACK_INDICES \
+            if self.CAMERA_1_USB_FALLBACK_INDICES is not None \
+            else self.CAMERA_USB_FALLBACK_INDICES
 
     # ----- Fingerprint Sensor (R307) -----
     FINGERPRINT_UART_PORT: str = "/dev/ttyS0"

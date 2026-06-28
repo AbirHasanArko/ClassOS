@@ -150,8 +150,17 @@ nano .env
 Key settings to review:
 ```bash
 # Camera indices — verify with `ls /dev/video*`
-CAMERA_DEVICE_INDEX=0         # Camera 0 (entry/face)
-CAMERA_1_DEVICE_INDEX=2       # Camera 1 (head count) — try 0, 1, or 2
+CAMERA_DEVICE_INDEX=0         # Camera 0 (entry/face) — CSI cam = /dev/video0
+CAMERA_1_DEVICE_INDEX=2       # Camera 1 (head count) — CSI cam 1 = /dev/video2
+
+# USB Webcam Fallback
+# Comma-separated device indices to try if the preferred camera can't be opened.
+# The system probes them in order and uses the first that opens.
+# Example: single USB webcam on /dev/video1
+# CAMERA_USB_FALLBACK_INDICES=1
+# Example: try /dev/video1, then /dev/video3
+# CAMERA_USB_FALLBACK_INDICES=1,3,4
+CAMERA_USB_FALLBACK_INDICES=1,3,4
 
 # Fingerprint sensor
 FINGERPRINT_MOCK_MODE=false   # Set false for real hardware
@@ -184,7 +193,7 @@ backend:
   privileged: true
 ```
 
-> 💡 If Camera 1 device index differs on your system (e.g., `/dev/video1`), update both the `devices` entry and `CAMERA_1_DEVICE_INDEX` in `.env`.
+> 💡 **USB Webcam Fallback**: If you're using a USB webcam instead of a CSI Camera Module, add its device node to the `devices` list too. For example, if your USB webcam is `/dev/video1`, add `- /dev/video1:/dev/video1`. The system will automatically use it as a fallback when `CAMERA_USB_FALLBACK_INDICES=1` is set in `.env`. There is no need to change any Python source code.
 
 ### 4.6 Build & Start
 
@@ -336,11 +345,14 @@ The Pi 5 with 8GB RAM can handle ClassOS comfortably. Recommended optimizations:
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Backend won't start | DB not ready | Check `docker compose logs db` |
-| Camera 0 feed black | Camera 0 not detected | Verify CSI cable, run `rpicam-hello --list-cameras` |
+| Camera 0 feed black | Camera 0 not detected | Verify CSI cable, run `rpicam-hello --list-cameras`; or set `CAMERA_USB_FALLBACK_INDICES=1` if using a USB webcam |
+| Camera 0 fell back to USB webcam | CSI camera not detected | Expected behavior. Log shows `⚠️ Fell back to /dev/videoN`. Verify CSI cable or accept USB fallback. |
 | Camera 1 feed missing | Camera 1 not connected | The "Verify Head Count" button will be disabled — this is expected fallback behavior |
+| Camera 1 fell back to USB webcam | CSI camera 1 not detected | Expected. Ensure USB webcam is in `devices` in `docker-compose.yml` and its index is in `CAMERA_USB_FALLBACK_INDICES` |
 | LCD shows nothing | I2C not detected | Run `i2cdetect -y 1`; check wiring and I2C enabled in raspi-config |
 | LCD shows wrong address | PCF8574 variant | Try `LCD_I2C_ADDRESS=0x3F` in `.env` |
 | Fingerprint timeout | UART not enabled | Verify `enable_uart=1`, check wiring, check `ls /dev/ttyS0` |
 | Slow recognition | CPU overloaded | Reduce `CAMERA_FPS`, increase `HEAD_COUNT_INTERVAL` |
 | Out of memory | Too many models | Use `--workers 1`, reduce `DB_POOL_SIZE` |
-| Head count mode disabled | Camera 1 unavailable | System gracefully disables "Verify Head Count" — connect Camera 1 to CAM/DISP 1 |
+| Head count mode disabled | Camera 1 unavailable | System gracefully disables "Verify Head Count" — connect Camera 1 to CAM/DISP 1 or a second USB webcam |
+| Gallery face upload fails | EXIF orientation issue (fixed in v2.1) | Ensure you are running v2.1+. The backend now auto-corrects portrait-mode phone photos. |

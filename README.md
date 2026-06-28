@@ -57,10 +57,13 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 ## 🚀 Core Features
 
 - **Dual-Camera Attendance System:** Two cameras serving distinct roles — Camera 0 (entry door, face recognition) and Camera 1 (classroom ceiling, head counting). Both modes switchable mid-session without data loss.
+- **USB Webcam Auto-Fallback:** If a CSI Camera Module is unavailable, the system automatically probes a configurable list of USB webcam device indices and uses the first one that opens — zero code changes required, controlled via `.env`.
 - **Take Attendance Mode:** Camera 0 runs the face recognition pipeline. Students are auto-marked present when entering the room.
 - **Verify Head Count Mode:** Camera 1 runs YOLOv8 Nano to count all heads in the classroom and compares vs recognized attendance. Instantly flags mismatches.
 - **Automated AI Face Recognition:** Real-time face detection using dlib algorithms. Auto-marks at ≥70% confidence, requests fingerprint at 30–69%, ignores unknowns <30%.
 - **R307 Biometric Fallback:** Seamless fallback to physical fingerprint scanning over UART. Available even when no face is detected at all.
+- **EXIF-Aware Face Enrollment:** Gallery photos from phones (portrait-mode JPEG) are automatically rotated based on their EXIF orientation tag before face detection, eliminating the most common cause of enrollment failures.
+- **Universal Webcam Support for Enrollment:** The face registration page intelligently selects the front/selfie camera on phones, the built-in webcam on laptops, and Camera 0 (`/dev/video0`) when the browser runs directly on the Raspberry Pi — all automatically.
 - **20×4 LCD Display:** Real-time hardware status display shows "Total Attendee: X / Name Present" during attendance, and "Present = X / Head Count = X / ✓ Match" during head count. Dashboard mirrors the LCD in real-time.
 - **Live MJPEG Video Streaming:** Teachers watch Camera 0 or Camera 1 (mode-dependent) with annotated AI bounding boxes in real-time.
 - **Real-Time WebSocket Sync:** As students are detected, their full names instantly appear on the teacher's screen without refreshing.
@@ -256,12 +259,12 @@ ClassOS requires direct hardware integration. The Raspberry Pi 5 orchestrates st
 | Component | Model | Interface | Purpose |
 |-----------|-------|-----------|---------|
 | Compute | Raspberry Pi 5 (8GB) | — | Main edge server |
-| Camera 0 | RPi Camera Module v2/v3 | CSI (CAM/DISP 0) | Entry door — face recognition |
-| Camera 1 | RPi Camera Module v2/v3 | CSI (CAM/DISP 1) | Classroom ceiling — head counting |
+| Camera 0 | RPi Camera Module v2/v3 **or USB webcam** | CSI (CAM/DISP 0) or USB | Entry door — face recognition |
+| Camera 1 | RPi Camera Module v2/v3 **or USB webcam** | CSI (CAM/DISP 1) or USB | Classroom ceiling — head counting |
 | Biometric | R307 Optical Sensor | UART (GPIO) | Identity fallback verification |
 | Display | 20×4 HD44780 LCD + PCF8574 | I2C (GPIO 2/3) | Real-time status feedback |
 
-> 💡 **Fallback**: If only one camera is available, connect it to CAM/DISP 0. The "Verify Head Count" mode is automatically disabled.
+> 💡 **USB Webcam Fallback**: If a CSI camera is unavailable, the system automatically tries USB webcam device indices listed in `CAMERA_USB_FALLBACK_INDICES` (`.env`). Set `CAMERA_USB_FALLBACK_INDICES=1` for a single USB webcam. If only one camera is available in total, connect it to Camera 0 — the "Verify Head Count" mode is automatically disabled.
 
 ### 📠 R307 Wiring Guide
 
@@ -398,9 +401,10 @@ For deeper technical dives, please refer to the dedicated documentation files:
 - 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
 - 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
 - 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
+- 📷 **[Face Enrollment & Camera Guide (face_enrollment_guide.md)](docs/face_enrollment_guide.md)**
 - 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
 - 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**  
-- 📷 **[Camera Permissions Guide (camera_permissions_guide.md)](docs/camera_permissions_guide.md)**
+- 🔐 **[Camera Permissions Guide (camera_permissions_guide.md)](docs/camera_permissions_guide.md)**
 
 ---
 
@@ -410,6 +414,9 @@ For deeper technical dives, please refer to the dedicated documentation files:
 - [x] **20×4 LCD Display:** Real-time hardware feedback with student names, attendance count, and head count match/mismatch. ✅ Implemented v2.0
 - [x] **Improved Recognition Thresholds:** 70% auto-mark, 30–69% fingerprint prompt. ✅ Updated v2.0
 - [x] **Split Session Modes:** Take Attendance vs Verify Head Count — switchable mid-session. ✅ Implemented v2.0
+- [x] **USB Webcam Auto-Fallback:** Camera 0 and Camera 1 automatically fall back to USB webcams if CSI cameras are unavailable. Configurable via `CAMERA_USB_FALLBACK_INDICES` in `.env`. ✅ Implemented v2.1
+- [x] **EXIF-Aware Face Enrollment:** Portrait-mode phone photos are auto-rotated using EXIF metadata before face detection, fixing gallery upload failures. ✅ Implemented v2.1
+- [x] **Smart Webcam Selection:** Face registration webcam correctly uses front camera on phones, built-in webcam on laptops, and Camera 0 on Raspberry Pi. ✅ Implemented v2.1
 - [ ] **Offline Resilience:** Cache attendance data locally on the Raspberry Pi if the Wi-Fi drops and auto-sync when connection is restored.
 - [ ] **Biometric Data Encryption & Privacy:** Implement encryption at rest for biometric vectors and automated scripts to purge data for graduated students.
 - [ ] **Automated Notifications:** Email/SMS alerts for students when attendance drops below threshold, and weekly CSV reports for teachers.

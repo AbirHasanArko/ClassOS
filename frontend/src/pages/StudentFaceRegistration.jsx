@@ -42,7 +42,9 @@ export const StudentFaceRegistration = () => {
       fetchStatus();
     } catch (err) {
       console.error('Failed to upload faces', err);
-      alert('Failed to upload face images. Ensure each image contains exactly one visible face.');
+      // Show the actual server error detail if available
+      const serverMsg = err?.response?.data?.detail;
+      alert(serverMsg || 'Failed to upload face images. Ensure each image contains exactly one visible face.');
     } finally {
       setIsUploading(false);
     }

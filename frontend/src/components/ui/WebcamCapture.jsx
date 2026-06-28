@@ -32,10 +32,31 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        audio: false,
-      });
+      // Strategy:
+      //  1. Try facingMode:'user' first — this correctly selects the front
+      //     (selfie) camera on phones and the built-in webcam on laptops.
+      //  2. If the browser throws OverconstrainedError (which Chromium on
+      //     Raspberry Pi does because CSI cameras carry no facingMode
+      //     metadata), retry without that constraint.  The browser then
+      //     picks the first available device, which on the Pi is Camera 0
+      //     (/dev/video0) — exactly what we want.
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: false,
+        });
+      } catch (constraintErr) {
+        if (constraintErr.name === 'OverconstrainedError' || constraintErr.name === 'ConstraintNotSatisfiedError') {
+          // Raspberry Pi / camera with no facingMode metadata — retry without it
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 } },
+            audio: false,
+          });
+        } else {
+          throw constraintErr; // re-throw so the outer catch handles it
+        }
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
