@@ -75,7 +75,7 @@ async def get_users(
         item = {
             "id": u.id,
             "email": u.email,
-            "role": u.role,
+            "role": "admin" if "admin" in role_str else "teacher",
             "is_active": u.is_active,
             "first_name": None,
             "last_name": None,
