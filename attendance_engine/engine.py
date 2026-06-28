@@ -319,7 +319,18 @@ class AttendanceEngine:
             res = await db.execute(stmt)
             record = res.scalar_one_or_none()
 
-            if record and record.status != AttendanceStatus.PRESENT:
+            if record is None:
+                # No pre-seeded record — create one on the fly (e.g., guest / late enrollment)
+                record = Attendance(
+                    session_id=UUID(session_id),
+                    student_id=student_id,
+                    status=AttendanceStatus.ABSENT,  # will be flipped to PRESENT below
+                    method=method,                   # required NOT NULL field
+                )
+                db.add(record)
+                await db.flush()  # assign DB-generated id before updating fields
+
+            if record.status != AttendanceStatus.PRESENT:
                 record.status = AttendanceStatus.PRESENT
                 record.method = method
                 record.confidence = confidence
