@@ -63,7 +63,7 @@ async def get_users(
     query = select(User).options(
         selectinload(User.teacher_profile),
         selectinload(User.admin_profile)
-    ).where(User.role.in_([UserRole.ADMIN, UserRole.TEACHER]))
+    ).where((User.role == UserRole.ADMIN) | (User.role == UserRole.TEACHER))
     
     result = await db.execute(query)
     users = result.scalars().all()
