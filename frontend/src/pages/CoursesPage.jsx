@@ -4,13 +4,17 @@ import { Button } from '../components/ui/Button';
 import { getCourses, createCourse, enrollStudents, getCourseStudents, updateCourse, deleteCourse } from '../api/courses';
 import { getStudents } from '../api/students';
 import { getCourseReport, downloadCourseReportCsv } from '../api/analytics';
+import { getUsers } from '../api/users';
+import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, Plus, Users, CheckSquare, Square, X, FileSpreadsheet, FileBarChart, Pencil, Trash } from 'lucide-react';
 
 export const CoursesPage = () => {
+  const { user: currentUser } = useAuth();
   const [courses, setCourses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCourse, setNewCourse] = useState({
-    course_code: '', course_name: '', schedule: ''
+    course_code: '', course_name: '', schedule: '', teacher_id: ''
   });
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -40,16 +44,30 @@ export const CoursesPage = () => {
     }
   };
 
+  const fetchTeachers = async () => {
+    try {
+      const data = await getUsers();
+      setTeachers(data.filter(u => u.role === 'teacher' && u.profile_id));
+    } catch (err) {
+      console.error('Failed to fetch teachers', err);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
-  }, []);
+    if (currentUser?.role === 'admin') {
+      fetchTeachers();
+    }
+  }, [currentUser]);
 
   const handleAddCourse = async (e) => {
     e.preventDefault();
     try {
-      await createCourse(newCourse);
+      const payload = { ...newCourse };
+      if (!payload.teacher_id) delete payload.teacher_id;
+      await createCourse(payload);
       setShowAddModal(false);
-      setNewCourse({ course_code: '', course_name: '', schedule: '' });
+      setNewCourse({ course_code: '', course_name: '', schedule: '', teacher_id: '' });
       fetchCourses();
     } catch (err) {
       console.error('Failed to create course', err);
@@ -135,7 +153,9 @@ export const CoursesPage = () => {
   const handleSaveEditCourse = async (e) => {
     e.preventDefault();
     try {
-      await updateCourse(editCourseData.id, editCourseData);
+      const payload = { ...editCourseData };
+      if (!payload.teacher_id) delete payload.teacher_id;
+      await updateCourse(editCourseData.id, payload);
       setShowEditModal(false);
       fetchCourses();
     } catch (err) {
@@ -155,6 +175,13 @@ export const CoursesPage = () => {
         setIsDeleting(false);
       }
     }
+  };
+
+  const getTeacherName = (teacherId) => {
+    if (currentUser?.role === 'teacher') return 'Your Course';
+    if (!teacherId) return 'No Teacher Assigned';
+    const teacher = teachers.find(t => t.profile_id === teacherId);
+    return teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown Teacher';
   };
 
   return (
@@ -194,6 +221,9 @@ export const CoursesPage = () => {
               <CardTitle className="text-lg mt-3">{course.course_name}</CardTitle>
             </CardHeader>
             <CardContent>
+              <p className="text-sm font-medium text-foreground mb-1">
+                {getTeacherName(course.teacher_id)}
+              </p>
               <p className="text-sm text-muted-foreground mb-4">{course.schedule || 'No schedule set'}</p>
               <div className="flex flex-col gap-2">
                 <Button 
@@ -266,6 +296,21 @@ export const CoursesPage = () => {
                     onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
                   />
                 </div>
+                {currentUser?.role === 'admin' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Assign Teacher (Optional)</label>
+                    <select
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={newCourse.teacher_id || ''}
+                      onChange={(e) => setNewCourse({ ...newCourse, teacher_id: e.target.value })}
+                    >
+                      <option value="">-- No Teacher --</option>
+                      {teachers.map(t => (
+                        <option key={t.profile_id} value={t.profile_id}>{t.first_name} {t.last_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" type="button" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit">Create Course</Button>
@@ -312,6 +357,21 @@ export const CoursesPage = () => {
                     onChange={(e) => setEditCourseData({ ...editCourseData, schedule: e.target.value })}
                   />
                 </div>
+                {currentUser?.role === 'admin' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Assign Teacher (Optional)</label>
+                    <select
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={editCourseData.teacher_id || ''}
+                      onChange={(e) => setEditCourseData({ ...editCourseData, teacher_id: e.target.value })}
+                    >
+                      <option value="">-- No Teacher --</option>
+                      {teachers.map(t => (
+                        <option key={t.profile_id} value={t.profile_id}>{t.first_name} {t.last_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>Cancel</Button>
                   <Button type="submit">Save Changes</Button>

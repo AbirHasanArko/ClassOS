@@ -87,16 +87,21 @@ export const StudentCoursesPage = () => {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">{course.schedule || 'No schedule set'}</p>
               {enrolledCourseIds.has(course.id) ? (
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => handleUnenroll(course.id)}
-                  disabled={loadingId === course.id}
-                >
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  {loadingId === course.id ? 'Processing...' : 'Unenroll'}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm font-medium text-green-600 dark:text-green-500 flex items-center justify-center bg-green-50 dark:bg-green-900/20 py-2 rounded-md">
+                    ✓ Enrolled
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => handleUnenroll(course.id)}
+                    disabled={loadingId === course.id}
+                  >
+                    <UserMinus className="h-4 w-4 mr-2" />
+                    {loadingId === course.id ? 'Processing...' : 'Unenroll'}
+                  </Button>
+                </div>
               ) : (
                 <Button 
                   variant="outline" 

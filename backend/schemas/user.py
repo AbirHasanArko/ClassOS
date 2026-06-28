@@ -34,3 +34,4 @@ class UserListOut(UserOut):
     last_name: Optional[str] = None
     employee_id: Optional[str] = None
     department: Optional[str] = None
+    profile_id: Optional[UUID] = None

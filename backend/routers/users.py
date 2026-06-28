@@ -78,16 +78,19 @@ async def get_users(
             "first_name": None,
             "last_name": None,
             "employee_id": None,
-            "department": None
+            "department": None,
+            "profile_id": None
         }
         if u.role == UserRole.TEACHER and u.teacher_profile:
             item["first_name"] = u.teacher_profile.first_name
             item["last_name"] = u.teacher_profile.last_name
             item["employee_id"] = u.teacher_profile.employee_id
             item["department"] = u.teacher_profile.department
+            item["profile_id"] = u.teacher_profile.id
         elif u.role == UserRole.ADMIN and u.admin_profile:
             item["first_name"] = u.admin_profile.first_name
             item["last_name"] = u.admin_profile.last_name
+            item["profile_id"] = u.admin_profile.id
             
         items.append(item)
         
