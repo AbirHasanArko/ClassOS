@@ -186,17 +186,25 @@ class AttendanceEngine:
     async def _run_headcount_step(self, session_id: str):
         """Process one frame from Camera 1 through the head count pipeline."""
         cam1_available = session_manager.is_camera_1_available(session_id)
+        
+        frame = None
+        if cam1_available:
+            if not camera_1._running:
+                cam1_ok = camera_1.start_if_available()
+                if not cam1_ok:
+                    session_manager.set_camera_1_unavailable(session_id)
+                    await session_manager.broadcast_event(session_id, "camera_1_unavailable", {})
+                    cam1_available = False
+            
+            if cam1_available:
+                frame = camera_1.get_latest_frame()
+
+        # Fallback to Camera 0 (primary) if Camera 1 is missing or failed
         if not cam1_available:
-            await asyncio.sleep(1.0)
-            return
+            if not camera_0._running:
+                camera_0.start_if_available()
+            frame = camera_0.get_latest_frame()
 
-        if not camera_1._running:
-            cam1_ok = camera_1.start_if_available()
-            if not cam1_ok:
-                await asyncio.sleep(1.0)
-                return
-
-        frame = camera_1.get_latest_frame()
         if frame is not None:
             loop = asyncio.get_running_loop()
 
