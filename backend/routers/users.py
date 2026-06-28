@@ -69,8 +69,8 @@ async def get_users(
     
     items = []
     for u in all_users:
-        role_val = u.role.value if hasattr(u.role, 'value') else str(u.role)
-        if role_val not in (UserRole.ADMIN.value, UserRole.TEACHER.value):
+        role_str = str(u.role).lower()
+        if "admin" not in role_str and "teacher" not in role_str:
             continue
         item = {
             "id": u.id,
@@ -83,13 +83,13 @@ async def get_users(
             "department": None,
             "profile_id": None
         }
-        if role_val == UserRole.TEACHER.value and u.teacher_profile:
+        if "teacher" in role_str and u.teacher_profile:
             item["first_name"] = u.teacher_profile.first_name
             item["last_name"] = u.teacher_profile.last_name
             item["employee_id"] = u.teacher_profile.employee_id
             item["department"] = u.teacher_profile.department
             item["profile_id"] = u.teacher_profile.id
-        elif role_val == UserRole.ADMIN.value and u.admin_profile:
+        elif "admin" in role_str and u.admin_profile:
             item["first_name"] = u.admin_profile.first_name
             item["last_name"] = u.admin_profile.last_name
             item["profile_id"] = u.admin_profile.id
