@@ -121,6 +121,18 @@ class Settings(BaseSettings):
     YOLO_CONFIDENCE: float = 0.5
     HEAD_COUNT_INTERVAL: int = 5
 
+    @field_validator("FACE_CONFIDENCE_AUTO", "FACE_CONFIDENCE_FINGERPRINT", mode="before")
+    @classmethod
+    def parse_confidence_percentage(cls, v):
+        try:
+            val = float(v)
+            if val > 1.0:
+                return val / 100.0
+            return val
+        except (TypeError, ValueError):
+            return v
+
+
     # ----- LCD Display (20x4 I2C Character LCD — HD44780 + PCF8574 backpack) -----
     # Set LCD_ENABLED=false to disable the LCD (e.g., during development on non-Pi hardware).
     # The service falls back gracefully to stdout logging if hardware is unavailable.
