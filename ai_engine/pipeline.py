@@ -69,7 +69,7 @@ class FaceRecognitionPipeline:
                     elif confidence >= ai_config.FACE_CONFIDENCE_FINGERPRINT:
                         # 30%–69% → request fingerprint
                         box_color = (0, 165, 255)  # Orange
-                        name = "Verify FP"
+                        name = f"Verify FP (T:{ai_config.FACE_CONFIDENCE_AUTO:.2f})"
 
                     # Emit recognition event to Attendance Engine
                     on_result({
