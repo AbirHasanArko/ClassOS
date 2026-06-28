@@ -196,7 +196,7 @@ export const AttendancePage = () => {
       default:
         break;
     }
-  }, [messages]);
+  }, [messages, activeSession, fetchRoster]);
 
   const fetchRoster = useCallback(async (sessionId) => {
     try {
