@@ -69,6 +69,14 @@ def _load_exif_corrected(image_path: str) -> np.ndarray:
 
     # Ensure the image is in RGB mode (handles RGBA, palette, etc.)
     img = img.convert("RGB")
+    
+    # Scale down extremely large images to prevent OOM or HOG detection failures on the Pi.
+    # The HOG detector is optimized for standard resolutions, not 12MP+ smartphone photos.
+    max_dimension = 1200
+    if img.width > max_dimension or img.height > max_dimension:
+        resample_filter = getattr(Image, "Resampling", Image).LANCZOS
+        img.thumbnail((max_dimension, max_dimension), resample_filter)
+
     return np.array(img)
 
 
