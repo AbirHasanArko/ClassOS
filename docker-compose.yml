@@ -51,8 +51,8 @@ services:
       LCD_I2C_ADDRESS: ${LCD_I2C_ADDRESS:-0x27}
       LCD_I2C_BUS: ${LCD_I2C_BUS:-1}
       # AI thresholds
-      FACE_CONFIDENCE_AUTO: ${FACE_CONFIDENCE_AUTO:-0.70}
-      FACE_CONFIDENCE_FINGERPRINT: ${FACE_CONFIDENCE_FINGERPRINT:-0.30}
+      FACE_CONFIDENCE_AUTO: 0.70
+      FACE_CONFIDENCE_FINGERPRINT: 0.30
     volumes:
       - face_data:/app/data/faces
     ports:
