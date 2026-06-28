@@ -22,17 +22,17 @@ async def _generate_mjpeg(camera_instance, pipeline_instance, pipeline_flag_attr
 
     try:
         while True:
-            frame = camera_instance.get_latest_frame()
+            # 1. Get raw frame (may be None if camera is unavailable)
+            raw_frame = camera_instance.get_latest_frame()
 
-            if frame is not None:
-                # Use the AI-annotated frame if pipeline is active.
-                # This avoids running heavy models twice.
-                is_running = getattr(pipeline_instance, pipeline_flag_attr, False)
-                if is_running and pipeline_instance.latest_annotated_frame is not None:
-                    frame_to_stream = pipeline_instance.latest_annotated_frame
-                else:
-                    frame_to_stream = frame
+            # 2. Check if AI pipeline is running and has an annotated frame
+            is_running = getattr(pipeline_instance, pipeline_flag_attr, False)
+            annotated_frame = pipeline_instance.latest_annotated_frame if is_running else None
 
+            # 3. Stream annotated frame if available, otherwise raw frame
+            frame_to_stream = annotated_frame if annotated_frame is not None else raw_frame
+
+            if frame_to_stream is not None:
                 # Compress to JPEG — quality 70 is a good balance for WiFi streaming
                 ret, buffer = cv2.imencode('.jpg', frame_to_stream, [cv2.IMWRITE_JPEG_QUALITY, 70])
 
