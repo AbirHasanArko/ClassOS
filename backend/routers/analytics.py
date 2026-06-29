@@ -38,7 +38,7 @@ async def get_dashboard_stats(
 
     # Get method breakdown
     from models.attendance import AttendanceMethod
-    face_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FACE_RECOGNITION))
+    face_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FACE))
     fingerprint_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FINGERPRINT))
     manual_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.MANUAL))
     
