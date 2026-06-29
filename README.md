@@ -128,8 +128,11 @@ graph TD
     end
 
     subgraph Hardware [Edge Hardware Integration]
-        Cam[(Webcam)]
+        Cam0[(Camera 0 - Entry)]
+        Cam1[(Camera 1 - Classroom)]
         R307[(R307 Fingerprint)]
+        Button[(Push Button)]
+        LCD[(LCD Display)]
     end
 
     DB[(PostgreSQL)]
@@ -142,13 +145,16 @@ graph TD
     API <--> DB
     Orchestrator <--> DB
 
-    Cam --> Stream_Serv
+    Cam0 --> Stream_Serv
+    Cam1 --> Stream_Serv
     Stream_Serv -- Async Frames --> Face
     Stream_Serv -- Async Frames --> Yolo
     
     Face --> Orchestrator
     Yolo --> Orchestrator
     R307 -- UART Serial --> Orchestrator
+    Button -- GPIO --> Orchestrator
+    Orchestrator -- I2C --> LCD
 
     Orchestrator -- Broadcasts --> WS_Mgr
 ```
@@ -164,7 +170,7 @@ ClassOS/
 ├── database/               # Database connection logic and Alembic migration scripts
 ├── docker/                 # Dockerfiles used to containerize the different services
 ├── docs/                   # Extended project documentation (ER Diagrams, API references)
-├── fingerprint_service/    # Hardware serial communication (UART) for the R307 sensor
+├── fingerprint_service/    # Hardware serial (UART) for R307 and GPIO push button logic
 ├── frontend/               # The React SPA built with Vite and Tailwind CSS
 ├── lcd_service/            # 20×4 I2C LCD driver (RPLCD + smbus2, graceful fallback)
 ├── models/                 # Shared SQLAlchemy ORM models defining the database schema
@@ -177,9 +183,9 @@ ClassOS/
 
 #### 1. The Edge Server (Raspberry Pi 5)
 - **Role:** The central computing hub that runs the entire software stack. By acting as an edge node, it guarantees sub-second latency for heavy AI inferencing without relying on external cloud servers or active internet connections.
-- **Interconnection:** Connects to the local network to serve the React frontend to teacher/student devices, interfaces with the R307 biometric sensor via low-level GPIO/UART pins, and reads raw video frames from the USB webcam.
+- **Interconnection:** Connects to the local network to serve the React frontend to teacher/student devices, interfaces with the R307 biometric sensor via low-level GPIO/UART pins, listens to the hardware push button via GPIO, drives the I2C LCD display, and reads raw video frames from dual CSI/USB cameras.
 - **Subcomponents:**
-  - **OS Level Daemon:** Manages USB drivers for the webcam and UART configuration.
+  - **OS Level Daemon:** Manages USB/CSI drivers for the dual cameras, UART configuration for the R307, and I2C for the LCD.
   - **Docker Engine:** Orchestrates the PostgreSQL, FastAPI backend, and Nginx reverse proxy containers.
 
 #### 2. Frontend Dashboard (React + Vite)
@@ -214,20 +220,24 @@ To prevent duplicate database writes and handle uncertain identifications, Class
 
 ```mermaid
 flowchart TD
-    A[New Video Frame] --> B[Detect Faces]
+    A[New Video Frame - Cam 0] --> B[Detect Faces]
     B --> C{Generate Embedding}
     C -- Match Found --> D[Calculate Confidence Score]
     C -- No Match --> E[Draw Red 'Unknown' Box]
     
-    D --> F{Confidence >= 75%?}
+    D --> F{Confidence >= 70%?}
     F -- Yes --> G[Auto-Mark Present]
     G --> H[(Save to Database)]
-    H --> I[Broadcast 'Present' via WebSocket]
+    H --> I[Broadcast 'Present' via WebSocket & Update LCD]
     I --> J[Draw Green Box]
     
-    F -- No, but >= 60% --> K[Trigger Verification Flow]
+    F -- No, but >= 30% --> K[Trigger Verification Flow]
     K --> L[Draw Orange 'Verify FP' Box]
-    L --> M[Prompt Teacher UI]
+    L --> M[Prompt Teacher UI & LCD]
+    
+    P[Hardware Push Button] -.-> M
+    E -.-> P
+    
     M --> N[Wait for R307 Fingerprint Scan]
     N -- Valid Scan --> H
 ```
@@ -236,8 +246,8 @@ flowchart TD
 
 ClassOS uses a dual-model approach to ensure extremely high accuracy without bogging down the Raspberry Pi's CPU.
 
-1. **Face Embedding (dlib / ResNet):** When a student is enrolled, ClassOS extracts a 128-dimensional embedding of their face using a ResNet network trained on 3 million faces. During a live session, the system calculates the Euclidean distance between the live camera face and the stored database embeddings to generate a confidence percentage.
-2. **Crowd Verification (YOLOv8 Nano):** Face recognition alone can miss students sitting far back or looking down. To prevent proxy attendance and ensure total accuracy, we run Ultralytics' YOLOv8-nano model in the background to count the total number of human heads in the frame. If the head count exceeds the recognized face count, the teacher is alerted.
+1. **Face Embedding (dlib / ResNet):** When a student is enrolled (via self-upload or webcam), ClassOS automatically pre-processes the image (e.g., auto-rotating EXIF-tagged portrait photos) and extracts a 128-dimensional embedding of their face using a ResNet network trained on 3 million faces. During a live session, the system calculates the Euclidean distance between the live camera face and the stored database embeddings to generate a confidence percentage.
+2. **Crowd Verification (YOLOv8 Nano):** Face recognition alone can miss students sitting far back or looking down. To prevent proxy attendance and ensure total accuracy, we run Ultralytics' YOLOv8-nano model in the background (on Camera 1) to count the total number of human heads in the frame. If the head count exceeds the recognized face count, the teacher is alerted.
 
 ### 🎯 Recognition Thresholds
 
