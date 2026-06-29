@@ -23,9 +23,17 @@ async def get_dashboard_stats(
     
     if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
         from models.course import course_teachers
+        from sqlalchemy import or_
         t_id = current_user.teacher_profile.id
-        base_enrollment = base_enrollment.join(course_teachers, Enrollment.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == t_id)
-        base_attendance = base_attendance.join(AttendanceSession, Attendance.session_id == AttendanceSession.id).join(course_teachers, AttendanceSession.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == t_id)
+        
+        teacher_courses_subq = select(course_teachers.c.course_id).where(course_teachers.c.teacher_id == t_id).scalar_subquery()
+        session_cond = or_(
+            AttendanceSession.teacher_id == t_id,
+            AttendanceSession.course_id.in_(teacher_courses_subq)
+        )
+        
+        base_enrollment = base_enrollment.where(Enrollment.course_id.in_(teacher_courses_subq))
+        base_attendance = base_attendance.join(AttendanceSession, Attendance.session_id == AttendanceSession.id).where(session_cond)
 
     total_students_result = await db.execute(base_enrollment)
     total_students = total_students_result.scalar_one()
@@ -74,7 +82,13 @@ async def get_dashboard_stats(
     
     if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
         from models.course import course_teachers
-        base_sessions = base_sessions.join(course_teachers, AttendanceSession.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id)
+        from sqlalchemy import or_
+        teacher_courses_subq = select(course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id).scalar_subquery()
+        session_cond = or_(
+            AttendanceSession.teacher_id == current_user.teacher_profile.id,
+            AttendanceSession.course_id.in_(teacher_courses_subq)
+        )
+        base_sessions = base_sessions.where(session_cond)
 
     sessions_res = await db.execute(
         base_sessions
@@ -149,9 +163,14 @@ async def get_session_history(
     
     if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
         from models.course import course_teachers
-        # Filter to only show sessions for courses this teacher teaches
-        count_query = count_query.join(course_teachers, AttendanceSession.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id)
-        stmt = stmt.join(course_teachers, Course.id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id)
+        from sqlalchemy import or_
+        teacher_courses_subq = select(course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id).scalar_subquery()
+        session_cond = or_(
+            AttendanceSession.teacher_id == current_user.teacher_profile.id,
+            AttendanceSession.course_id.in_(teacher_courses_subq)
+        )
+        count_query = count_query.where(session_cond)
+        stmt = stmt.where(session_cond)
         
     total = await db.scalar(count_query)
     
