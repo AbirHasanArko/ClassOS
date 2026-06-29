@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { getCourses, createCourse, enrollStudents, getCourseStudents, updateCourse, deleteCourse } from '../api/courses';
 import { getStudents } from '../api/students';
 import { getCourseReport, downloadCourseReportCsv } from '../api/analytics';
-import { getUsers } from '../api/users';
+import { getTeachers } from '../api/users';
 import { useAuth } from '../contexts/AuthContext';
 import { BookOpen, Plus, Users, CheckSquare, Square, X, FileSpreadsheet, FileBarChart, Pencil, Trash } from 'lucide-react';
 
@@ -46,8 +46,8 @@ export const CoursesPage = () => {
 
   const fetchTeachers = async () => {
     try {
-      const data = await getUsers();
-      setTeachers(data.filter(u => u.role === 'teacher' && u.profile_id));
+      const data = await getTeachers();
+      setTeachers(data);
     } catch (err) {
       console.error('Failed to fetch teachers', err);
     }

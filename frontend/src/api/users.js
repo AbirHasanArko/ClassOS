@@ -5,6 +5,11 @@ export const getUsers = async () => {
   return response.data;
 };
 
+export const getTeachers = async () => {
+  const response = await client.get('/users/teachers');
+  return response.data;
+};
+
 export const createUser = async (userData) => {
   const response = await client.post('/users/', userData);
   return response.data;

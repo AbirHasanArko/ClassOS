@@ -18,13 +18,16 @@ export const UsersPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchUsers = async () => {
     try {
+      setFetchError(null);
       const data = await getUsers();
       setUsers(data);
     } catch (err) {
       console.error('Failed to fetch users', err);
+      setFetchError(err?.response?.data?.detail || 'Failed to load users. Check console for details.');
     }
   };
 
@@ -148,7 +151,16 @@ export const UsersPage = () => {
                     </td>
                   </tr>
                 ))}
-                {users.length === 0 && (
+                {fetchError && (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-red-500">
+                      ⚠️ {fetchError}
+                      <br />
+                      <button onClick={fetchUsers} className="mt-2 text-xs underline text-muted-foreground hover:text-foreground">Retry</button>
+                    </td>
+                  </tr>
+                )}
+                {!fetchError && users.length === 0 && (
                   <tr>
                     <td colSpan="5" className="p-8 text-center text-muted-foreground">
                       No users found.

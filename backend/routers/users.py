@@ -50,7 +50,15 @@ async def create_user(
         db.add(profile)
 
     await db.commit()
-    await db.refresh(new_user)
+    # Refresh with profile relationships so response includes profile data
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(User).options(
+            selectinload(User.teacher_profile),
+            selectinload(User.admin_profile)
+        ).where(User.id == new_user.id)
+    )
+    new_user = result.scalar_one()
     return new_user
 
 @router.get("/", response_model=list[UserListOut])
@@ -69,13 +77,13 @@ async def get_users(
     
     items = []
     for u in all_users:
-        role_str = str(u.role).lower()
-        if "admin" not in role_str and "teacher" not in role_str:
+        # Only include admin and teacher accounts (skip students)
+        if u.role not in (UserRole.ADMIN, UserRole.TEACHER):
             continue
         item = {
             "id": u.id,
             "email": u.email,
-            "role": "admin" if "admin" in role_str else "teacher",
+            "role": u.role.value,
             "is_active": u.is_active,
             "first_name": None,
             "last_name": None,
@@ -83,19 +91,50 @@ async def get_users(
             "department": None,
             "profile_id": None
         }
-        if "teacher" in role_str and u.teacher_profile:
+        if u.role == UserRole.TEACHER and u.teacher_profile:
             item["first_name"] = u.teacher_profile.first_name
             item["last_name"] = u.teacher_profile.last_name
             item["employee_id"] = u.teacher_profile.employee_id
             item["department"] = u.teacher_profile.department
             item["profile_id"] = u.teacher_profile.id
-        elif "admin" in role_str and u.admin_profile:
+        elif u.role == UserRole.ADMIN and u.admin_profile:
             item["first_name"] = u.admin_profile.first_name
             item["last_name"] = u.admin_profile.last_name
             item["profile_id"] = u.admin_profile.id
             
         items.append(item)
         
+    return items
+
+@router.get("/teachers", response_model=list[UserListOut])
+async def get_teachers(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
+):
+    """Return all teacher accounts with their profile data. Used for course assignment."""
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.teacher_profile))
+        .where(User.role == UserRole.TEACHER, User.is_active == True)
+    )
+    teacher_users = result.scalars().all()
+
+    items = []
+    for u in teacher_users:
+        if not u.teacher_profile:
+            continue
+        items.append({
+            "id": u.id,
+            "email": u.email,
+            "role": u.role.value,
+            "is_active": u.is_active,
+            "first_name": u.teacher_profile.first_name,
+            "last_name": u.teacher_profile.last_name,
+            "employee_id": u.teacher_profile.employee_id,
+            "department": u.teacher_profile.department,
+            "profile_id": u.teacher_profile.id,
+        })
     return items
 
 @router.put("/{user_id}", response_model=UserOut)
