@@ -18,19 +18,28 @@ async def get_dashboard_stats(
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.TEACHER]))
 ):
     # Dummy logic for dashboard stats - in real app, filter by date range
-    total_students_result = await db.execute(select(func.count(Enrollment.id)))
+    base_enrollment = select(func.count(Enrollment.id))
+    base_attendance = select(func.count(Attendance.id))
+    
+    if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
+        from models.course import course_teachers
+        t_id = current_user.teacher_profile.id
+        base_enrollment = base_enrollment.join(course_teachers, Enrollment.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == t_id)
+        base_attendance = base_attendance.join(AttendanceSession, Attendance.session_id == AttendanceSession.id).join(course_teachers, AttendanceSession.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == t_id)
+
+    total_students_result = await db.execute(base_enrollment)
     total_students = total_students_result.scalar_one()
 
-    present_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.status == AttendanceStatus.PRESENT))
+    present_result = await db.execute(base_attendance.where(Attendance.status == AttendanceStatus.PRESENT))
     present = present_result.scalar_one()
 
-    absent_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.status == AttendanceStatus.ABSENT))
+    absent_result = await db.execute(base_attendance.where(Attendance.status == AttendanceStatus.ABSENT))
     absent = absent_result.scalar_one()
 
-    late_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.status == AttendanceStatus.LATE))
+    late_result = await db.execute(base_attendance.where(Attendance.status == AttendanceStatus.LATE))
     late = late_result.scalar_one()
     
-    excused_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.status == AttendanceStatus.EXCUSED))
+    excused_result = await db.execute(base_attendance.where(Attendance.status == AttendanceStatus.EXCUSED))
     excused = excused_result.scalar_one()
 
     total_records = present + absent + late + excused
@@ -38,9 +47,9 @@ async def get_dashboard_stats(
 
     # Get method breakdown
     from models.attendance import AttendanceMethod
-    face_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FACE))
-    fingerprint_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FINGERPRINT))
-    manual_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.MANUAL))
+    face_result = await db.execute(base_attendance.where(Attendance.method == AttendanceMethod.FACE))
+    fingerprint_result = await db.execute(base_attendance.where(Attendance.method == AttendanceMethod.FINGERPRINT))
+    manual_result = await db.execute(base_attendance.where(Attendance.method == AttendanceMethod.MANUAL))
     
     from backend.schemas.analytics import MethodBreakdown, WeeklyTrend
     method_breakdown = MethodBreakdown(
@@ -58,9 +67,17 @@ async def get_dashboard_stats(
         .scalar_subquery()
     )
 
-    sessions_res = await db.execute(
+    base_sessions = (
         select(AttendanceSession.started_at, AttendanceSession.recognized_count, enrolled_subq.label("enrolled_count"))
         .select_from(AttendanceSession)
+    )
+    
+    if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
+        from models.course import course_teachers
+        base_sessions = base_sessions.join(course_teachers, AttendanceSession.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id)
+
+    sessions_res = await db.execute(
+        base_sessions
         .order_by(AttendanceSession.started_at.desc())
         .limit(50)
     )
@@ -131,9 +148,10 @@ async def get_session_history(
     )
     
     if current_user.role == UserRole.TEACHER and current_user.teacher_profile:
+        from models.course import course_teachers
         # Filter to only show sessions for courses this teacher teaches
-        count_query = count_query.join(Course, AttendanceSession.course_id == Course.id).where(Course.teacher_id == current_user.teacher_profile.id)
-        stmt = stmt.where(Course.teacher_id == current_user.teacher_profile.id)
+        count_query = count_query.join(course_teachers, AttendanceSession.course_id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id)
+        stmt = stmt.join(course_teachers, Course.id == course_teachers.c.course_id).where(course_teachers.c.teacher_id == current_user.teacher_profile.id)
         
     total = await db.scalar(count_query)
     
