@@ -6,6 +6,7 @@ import { getSessionRoster } from '../api/attendance';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Download, Eye, FileSpreadsheet, X, Calendar, User as UserIcon, Clock } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,8 +28,16 @@ ChartJS.register(
 );
 
 export const AnalyticsPage = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
+  const textColor = isDark ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
   const [stats, setStats] = useState({
-    present: 0, absent: 0, late: 0, excused: 0, attendance_rate: 0
+    present: 0, absent: 0, late: 0, excused: 0, attendance_rate: 0,
+    weekly_trend: [{ date: 'Mon', rate: 0 }],
+    method_breakdown: { face: 0, fingerprint: 0, manual: 0 }
   });
 
   const [sessions, setSessions] = useState([]);
@@ -108,10 +117,10 @@ export const AnalyticsPage = () => {
   };
 
   const weeklyTrendData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    labels: stats.weekly_trend ? stats.weekly_trend.map(t => t.date) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     datasets: [{
       label: 'Attendance Rate (%)',
-      data: [85, 92, 78, 95, 88],
+      data: stats.weekly_trend ? stats.weekly_trend.map(t => t.rate) : [0, 0, 0, 0, 0],
       borderColor: 'rgba(99, 102, 241, 1)',
       backgroundColor: 'rgba(99, 102, 241, 0.15)',
       fill: true,
@@ -128,7 +137,9 @@ export const AnalyticsPage = () => {
     labels: ['Face Recognition', 'Fingerprint', 'Manual'],
     datasets: [{
       label: 'Check-in Count',
-      data: [65, 15, 20],
+      data: stats.method_breakdown 
+        ? [stats.method_breakdown.face, stats.method_breakdown.fingerprint, stats.method_breakdown.manual]
+        : [0, 0, 0],
       backgroundColor: [
         'rgba(14, 165, 233, 0.8)',  // light blue
         'rgba(168, 85, 247, 0.8)',  // purple
@@ -151,17 +162,17 @@ export const AnalyticsPage = () => {
     plugins: {
       legend: {
         labels: {
-          color: 'hsl(var(--muted-foreground))',
+          color: textColor,
           font: { family: 'Inter', size: 12 },
           usePointStyle: true,
           padding: 20,
         }
       },
       tooltip: {
-        backgroundColor: 'hsl(var(--card))',
-        titleColor: 'hsl(var(--card-foreground))',
-        bodyColor: 'hsl(var(--muted-foreground))',
-        borderColor: 'hsl(var(--border))',
+        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+        titleColor: isDark ? '#f8fafc' : '#0f172a',
+        bodyColor: isDark ? '#cbd5e1' : '#475569',
+        borderColor: gridColor,
         borderWidth: 1,
         padding: 10,
         displayColors: true,
@@ -174,18 +185,18 @@ export const AnalyticsPage = () => {
     ...commonChartOptions,
     scales: {
       x: {
-        ticks: { color: 'hsl(var(--muted-foreground))', font: { family: 'Inter' } },
-        grid: { color: 'hsl(var(--border))', drawBorder: false }
+        ticks: { color: textColor, font: { family: 'Inter' } },
+        grid: { color: gridColor, drawBorder: false }
       },
       y: {
         beginAtZero: true,
         max: 100,
         ticks: { 
-          color: 'hsl(var(--muted-foreground))', 
+          color: textColor, 
           font: { family: 'Inter' },
           callback: (value) => `${value}%`
         },
-        grid: { color: 'hsl(var(--border))', borderDash: [5, 5], drawBorder: false }
+        grid: { color: gridColor, borderDash: [5, 5], drawBorder: false }
       }
     }
   };
@@ -194,17 +205,17 @@ export const AnalyticsPage = () => {
     ...commonChartOptions,
     scales: {
       x: {
-        ticks: { color: 'hsl(var(--muted-foreground))', font: { family: 'Inter' } },
+        ticks: { color: textColor, font: { family: 'Inter' } },
         grid: { display: false, drawBorder: false }
       },
       y: {
         beginAtZero: true,
         ticks: { 
-          color: 'hsl(var(--muted-foreground))', 
+          color: textColor, 
           font: { family: 'Inter' },
           stepSize: 20
         },
-        grid: { color: 'hsl(var(--border))', borderDash: [5, 5], drawBorder: false }
+        grid: { color: gridColor, borderDash: [5, 5], drawBorder: false }
       }
     }
   };
@@ -246,17 +257,17 @@ export const AnalyticsPage = () => {
                     legend: {
                       position: 'bottom',
                       labels: { 
-                        color: 'hsl(var(--muted-foreground))', 
+                        color: textColor, 
                         font: { family: 'Inter', size: 12 },
                         usePointStyle: true,
                         padding: 20
                       }
                     },
                     tooltip: {
-                      backgroundColor: 'hsl(var(--card))',
-                      titleColor: 'hsl(var(--card-foreground))',
-                      bodyColor: 'hsl(var(--muted-foreground))',
-                      borderColor: 'hsl(var(--border))',
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      titleColor: isDark ? '#f8fafc' : '#0f172a',
+                      bodyColor: isDark ? '#cbd5e1' : '#475569',
+                      borderColor: gridColor,
                       borderWidth: 1,
                       padding: 10,
                       displayColors: true,

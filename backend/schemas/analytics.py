@@ -1,6 +1,15 @@
 from typing import Dict, List
 from pydantic import BaseModel
 
+class WeeklyTrend(BaseModel):
+    date: str
+    rate: float
+
+class MethodBreakdown(BaseModel):
+    face: int
+    fingerprint: int
+    manual: int
+
 class AttendanceStats(BaseModel):
     total_students: int
     present: int
@@ -8,6 +17,8 @@ class AttendanceStats(BaseModel):
     late: int
     excused: int
     attendance_rate: float
+    weekly_trend: List[WeeklyTrend]
+    method_breakdown: MethodBreakdown
 
 class CourseAnalytics(BaseModel):
     course_name: str

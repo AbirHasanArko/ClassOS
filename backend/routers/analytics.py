@@ -36,13 +36,57 @@ async def get_dashboard_stats(
     total_records = present + absent + late + excused
     rate = (present / total_records * 100) if total_records > 0 else 0.0
 
+    # Get method breakdown
+    from models.attendance import AttendanceMethod
+    face_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FACE_RECOGNITION))
+    fingerprint_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.FINGERPRINT))
+    manual_result = await db.execute(select(func.count(Attendance.id)).where(Attendance.method == AttendanceMethod.MANUAL))
+    
+    from backend.schemas.analytics import MethodBreakdown, WeeklyTrend
+    method_breakdown = MethodBreakdown(
+        face=face_result.scalar_one(),
+        fingerprint=fingerprint_result.scalar_one(),
+        manual=manual_result.scalar_one()
+    )
+
+    # Get weekly trend (last 5 active days)
+    from models.attendance_session import AttendanceSession
+    sessions_res = await db.execute(
+        select(AttendanceSession.started_at, AttendanceSession.recognized_count, AttendanceSession.head_count)
+        .order_by(AttendanceSession.started_at.desc())
+        .limit(50)
+    )
+    sessions = sessions_res.all()
+    
+    date_stats = {}
+    for s in sessions:
+        day_name = s.started_at.strftime("%a")
+        if day_name not in date_stats:
+            date_stats[day_name] = {'rec': 0, 'head': 0, 'date_obj': s.started_at.date()}
+        date_stats[day_name]['rec'] += s.recognized_count
+        date_stats[day_name]['head'] += s.head_count
+
+    # Sort chronologically and take last 5
+    sorted_stats = sorted(date_stats.items(), key=lambda x: x[1]['date_obj'])[-5:]
+    
+    weekly_trend = []
+    for day_name, stats in sorted_stats:
+        day_rate = (stats['rec'] / stats['head'] * 100) if stats['head'] > 0 else 0
+        weekly_trend.append(WeeklyTrend(date=day_name, rate=round(day_rate, 1)))
+        
+    if not weekly_trend:
+        # Default empty state
+        weekly_trend = [WeeklyTrend(date="None", rate=0)]
+
     return AttendanceStats(
         total_students=total_students,
         present=present,
         absent=absent,
         late=late,
         excused=excused,
-        attendance_rate=round(rate, 1)
+        attendance_rate=round(rate, 1),
+        weekly_trend=weekly_trend,
+        method_breakdown=method_breakdown
     )
 
 from backend.schemas.analytics import SessionSummaryList, SessionSummaryOut
