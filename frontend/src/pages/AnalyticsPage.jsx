@@ -30,7 +30,7 @@ ChartJS.register(
 
 export const AnalyticsPage = () => {
   const { theme } = useTheme();
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const isDark = theme === 'dark';
   
   const textColor = isDark ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
@@ -385,7 +385,7 @@ export const AnalyticsPage = () => {
                           <Button size="sm" disabled={isDownloading} onClick={(e) => handleDownloadCsv(session.id, e)}>
                             <Download className="h-4 w-4 mr-1" /> CSV
                           </Button>
-                          {currentUser?.role === 'admin' && (
+                          {user?.role === 'admin' && (
                             <Button variant="destructive" size="sm" onClick={() => handleDeleteSession(session.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
