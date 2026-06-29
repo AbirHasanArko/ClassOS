@@ -44,13 +44,19 @@ async def lifespan(app: FastAPI):
 
     # Start the Attendance Engine (background loop: camera → AI → DB)
     from attendance_engine.engine import engine as attendance_engine
+    import asyncio
     await attendance_engine.start()
     print("✅ Attendance engine started")
+
+    from fingerprint_service.button import hardware_button_listener
+    hardware_button_listener.start(asyncio.get_running_loop())
 
     yield
 
     # ----- Shutdown -----
     print("🛑 Shutting down ClassOS...")
+
+    hardware_button_listener.stop()
 
     # Stop attendance engine and both cameras
     from attendance_engine.engine import engine as attendance_engine

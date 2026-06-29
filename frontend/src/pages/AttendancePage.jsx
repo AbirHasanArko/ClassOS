@@ -289,10 +289,14 @@ export const AttendancePage = () => {
 
   // ── Fingerprint
   const handleFingerprintScan = async () => {
+    if (!activeSession) return;
     try {
       const result = await triggerFingerprintScan();
-      if (result.success) {
+      if (result.success && result.student_id) {
         setFingerprintNeeded(false);
+        // Explicitly mark attendance since the verify endpoint only returns the match
+        await markAttendanceManual(activeSession.id, result.student_id, 'present');
+        await fetchRoster(activeSession.id);
       }
     } catch (err) {
       console.error('Fingerprint scan failed', err);

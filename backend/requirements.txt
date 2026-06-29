@@ -31,6 +31,7 @@ ultralytics==8.2.27
 
 # ----- Fingerprint Sensor -----
 pyserial==3.5
+gpiozero==2.0.1
 
 # ----- LCD Display (20x4 I2C — HD44780 + PCF8574 backpack) -----
 # RPLCD: High-level LCD driver for HD44780 displays

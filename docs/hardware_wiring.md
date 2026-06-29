@@ -9,6 +9,7 @@
 | Camera 1 (Classroom) | Raspberry Pi Camera Module v2/v3 | 1 | Head counting (YOLOv8) — connected to CAM/DISP 1 |
 | Fingerprint Sensor | R307 Optical Fingerprint Module | 1 | Identity fallback verification (UART) |
 | LCD Display | 20×4 HD44780 + I2C PCF8574 backpack | 1 | Real-time status display |
+| Push Button | Generic Momentary Switch | 1 | Trigger direct fingerprint scan |
 | Jumper Wires | Female-to-Female | 8+ | GPIO connections |
 
 > 💡 **Fallback**: If only one camera is available, connect it to CAM/DISP 0. The system detects Camera 1 automatically and disables the "Verify Head Count" mode gracefully.
@@ -219,9 +220,25 @@ lcd.write_string('ClassOS LCD OK!')
 "
 ```
 
+## 4. Momentary Push Button Wiring
+
+The push button allows students to manually trigger the fingerprint scanner without needing to use the web dashboard.
+
+### Pin Connections:
+
+```
+Momentary Button     Raspberry Pi 5
+┌──────────────┐     ┌──────────────────┐
+│ Leg 1        ├────►│ Pin 16 (GPIO23)  │
+│ Leg 2        ├────►│ Pin 14 (GND)     │
+└──────────────┘     └──────────────────┘
+```
+
+> 💡 **Pull-up Resistor**: The `gpiozero` library automatically enables the internal pull-up resistor on GPIO23, so you do not need any external resistors. Simply connect the button directly between GPIO23 and GND.
+
 ---
 
-## 4. Complete Wiring Overview
+## 5. Complete Wiring Overview
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -241,6 +258,8 @@ lcd.write_string('ClassOS LCD OK!')
 │                                                LCD GND        │
 │  Pin 8  (TXD)  ──────────────────────────────► R307 RX       │
 │  Pin 10 (RXD)  ──────────────────────────────► R307 TX       │
+│  Pin 14 (GND)  ──────────────────────────────► Button GND    │
+│  Pin 16 (GPIO23)─────────────────────────────► Button Leg 1  │
 │                                                               │
 │  Docker Engine (PostgreSQL + FastAPI + Nginx + React)         │
 └──────────────────────────────────────────────────────────────┘

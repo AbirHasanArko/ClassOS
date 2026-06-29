@@ -104,10 +104,11 @@ class Settings(BaseSettings):
             if self.CAMERA_1_USB_FALLBACK_INDICES is not None \
             else self.CAMERA_USB_FALLBACK_INDICES
 
-    # ----- Fingerprint Sensor (R307) -----
+    # ----- Fingerprint Sensor (R307) & Hardware Button -----
     FINGERPRINT_UART_PORT: str = "/dev/ttyS0"
     FINGERPRINT_BAUD_RATE: int = 57600
     FINGERPRINT_MOCK_MODE: bool = False
+    BUTTON_GPIO_PIN: int = 23
 
     # ----- AI Engine -----
     # Recognition thresholds:
