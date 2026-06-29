@@ -107,9 +107,16 @@ async def get_session_history(
     # Base query for total count
     count_query = select(func.count(AttendanceSession.id))
     
+    # Scalar subquery for enrolled count
+    enrolled_subq = (
+        select(func.count(Enrollment.id))
+        .where(Enrollment.course_id == AttendanceSession.course_id)
+        .scalar_subquery()
+    )
+    
     # Query for the actual data, joined with Course and Teacher
     stmt = (
-        select(AttendanceSession, Course, Teacher)
+        select(AttendanceSession, Course, Teacher, enrolled_subq.label("enrolled_count"))
         .join(Course, AttendanceSession.course_id == Course.id)
         .outerjoin(Teacher, AttendanceSession.teacher_id == Teacher.id)
         .order_by(AttendanceSession.started_at.desc())
@@ -127,7 +134,7 @@ async def get_session_history(
     records = res.all()
     
     items = []
-    for session, course, teacher in records:
+    for session, course, teacher, enrolled_count in records:
         teacher_name = f"{teacher.first_name} {teacher.last_name}" if teacher else "Unknown"
         items.append(SessionSummaryOut(
             id=session.id,
@@ -137,6 +144,7 @@ async def get_session_history(
             started_at=session.started_at,
             ended_at=session.ended_at,
             head_count=session.head_count,
+            enrolled_count=enrolled_count or 0,
             recognized_count=session.recognized_count,
             status=session.status.value if hasattr(session.status, 'value') else str(session.status)
         ))

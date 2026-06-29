@@ -43,6 +43,7 @@ class SessionSummaryOut(BaseModel):
     started_at: datetime
     ended_at: datetime | None
     head_count: int
+    enrolled_count: int
     recognized_count: int
     status: str
 

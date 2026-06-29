@@ -334,8 +334,8 @@ export const AnalyticsPage = () => {
                 ) : (
                   sessions.map((session) => {
                     const d = new Date(session.started_at);
-                    const rate = session.head_count > 0 
-                      ? Math.round((session.recognized_count / session.head_count) * 100) 
+                    const rate = session.enrolled_count > 0 
+                      ? Math.round((session.recognized_count / session.enrolled_count) * 100) 
                       : 0;
 
                     return (
@@ -355,7 +355,7 @@ export const AnalyticsPage = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <div className="font-medium">{session.recognized_count} / {session.head_count}</div>
+                          <div className="font-medium">{session.recognized_count} / {session.enrolled_count}</div>
                           <div className="text-xs text-muted-foreground">{rate}% Rate</div>
                         </td>
                         <td className="py-3 px-4 text-center">
