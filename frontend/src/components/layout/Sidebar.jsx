@@ -34,9 +34,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     >
       <div className="h-16 flex items-center justify-between px-6 border-b">
         <div className="flex items-center gap-2 text-primary font-bold text-xl">
-          <div className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center">
-            C
-          </div>
+          <img src="/logo.svg" alt="ClassOS Logo" className="w-8 h-8 rounded drop-shadow-sm" />
           <span>ClassOS</span>
         </div>
         <button className="md:hidden p-2 text-muted-foreground hover:bg-accent rounded-md" onClick={onClose}>

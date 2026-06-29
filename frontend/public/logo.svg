@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Rounded Background Container -->
+  <rect width="512" height="512" rx="120" fill="url(#logoGradient)" />
+
+  <!-- Stylized "C" for ClassOS -->
+  <path d="M360 170 C360 170 310 130 240 130 C150 130 120 200 120 256 C120 312 150 382 240 382 C300 382 340 350 360 330" 
+        stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)" />
+  
+  <!-- "OS" or Checkmark integrated inside -->
+  <path d="M220 270 L280 330 L420 180" 
+        stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)" />
+</svg>

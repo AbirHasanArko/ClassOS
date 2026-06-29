@@ -69,9 +69,7 @@ export const AboutPage = () => {
     <div className="space-y-8 max-w-5xl mx-auto pb-10">
       {/* Header Section */}
       <div className="text-center space-y-4 pt-6">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary text-primary-foreground text-4xl font-bold mb-2 shadow-lg">
-          C
-        </div>
+        <img src="/logo.svg" alt="ClassOS Logo" className="inline-block w-20 h-20 rounded-2xl shadow-lg mb-2" />
         <h1 className="text-4xl font-extrabold tracking-tight">About ClassOS</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           A smart, hardware-accelerated attendance management system designed for modern classrooms.
