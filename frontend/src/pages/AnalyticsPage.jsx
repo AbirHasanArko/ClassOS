@@ -263,9 +263,15 @@ export const AnalyticsPage = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[280px] flex items-center justify-center">
-              <Doughnut
-                data={statusChartData}
-                options={{
+              {(stats.present + stats.absent + stats.late + stats.excused) === 0 ? (
+                <div className="text-muted-foreground flex flex-col items-center">
+                  <FileSpreadsheet className="h-10 w-10 mb-2 opacity-20" />
+                  <p>No attendance data yet</p>
+                </div>
+              ) : (
+                <Doughnut
+                  data={statusChartData}
+                  options={{
                   responsive: true,
                   maintainAspectRatio: false,
                   plugins: {
@@ -292,6 +298,7 @@ export const AnalyticsPage = () => {
                   cutout: '65%',
                 }}
               />
+              )}
             </div>
           </CardContent>
         </Card>
