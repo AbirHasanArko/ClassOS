@@ -51,7 +51,6 @@ async def get_dashboard_stats(
 
     # Get weekly trend (last 5 active days)
     from models.attendance_session import AttendanceSession
-    from models.enrollment import Enrollment
 
     enrolled_subq = (
         select(func.count(Enrollment.id))
@@ -61,6 +60,7 @@ async def get_dashboard_stats(
 
     sessions_res = await db.execute(
         select(AttendanceSession.started_at, AttendanceSession.recognized_count, enrolled_subq.label("enrolled_count"))
+        .select_from(AttendanceSession)
         .order_by(AttendanceSession.started_at.desc())
         .limit(50)
     )
@@ -68,11 +68,11 @@ async def get_dashboard_stats(
     
     date_stats = {}
     for s in sessions:
-        day_name = s.started_at.strftime("%a")
+        day_name = s[0].strftime("%a")
         if day_name not in date_stats:
-            date_stats[day_name] = {'rec': 0, 'enrolled': 0, 'date_obj': s.started_at.date()}
-        date_stats[day_name]['rec'] += s.recognized_count
-        date_stats[day_name]['enrolled'] += (s.enrolled_count or 0)
+            date_stats[day_name] = {'rec': 0, 'enrolled': 0, 'date_obj': s[0].date()}
+        date_stats[day_name]['rec'] += s[1]
+        date_stats[day_name]['enrolled'] += (s[2] or 0)
 
     # Sort chronologically and take last 5
     sorted_stats = sorted(date_stats.items(), key=lambda x: x[1]['date_obj'])[-5:]
