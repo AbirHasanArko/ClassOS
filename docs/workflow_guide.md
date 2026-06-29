@@ -118,7 +118,7 @@ You can switch between **Take Attendance** and **Verify Head Count** mode at any
 
 ### Step 2.5: Edge Cases & Fingerprint Fallback
 - **Low confidence face (30–69%)**: Dashboard shows orange "Fingerprint Verification Needed" card. Teacher clicks "Scan Fingerprint" and student places finger on R307 sensor.
-- **No face detection**: Teacher clicks "Direct Fingerprint Scan" button (always visible in attendance mode). Student scans directly.
+- **No face detection**: Teacher clicks "Direct Fingerprint Scan" button (always visible in attendance mode) OR the student presses the **physical hardware push button** connected to the Raspberry Pi. The student then scans directly.
 - The LCD shows a fingerprint prompt in both cases.
 
 ### Step 2.6: Manual Override

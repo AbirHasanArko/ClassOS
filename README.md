@@ -62,6 +62,7 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 - **Verify Head Count Mode:** Camera 1 runs YOLOv8 Nano to count all heads in the classroom and compares vs recognized attendance. Instantly flags mismatches.
 - **Automated AI Face Recognition:** Real-time face detection using dlib algorithms. Auto-marks at ≥70% confidence, requests fingerprint at 30–69%, ignores unknowns <30%.
 - **R307 Biometric Fallback:** Seamless fallback to physical fingerprint scanning over UART. Available even when no face is detected at all.
+- **Hardware Push Button:** Momentary push button integration (GPIO) allowing students to instantly trigger a fingerprint scan without teacher intervention on the web dashboard.
 - **EXIF-Aware Face Enrollment:** Gallery photos from phones (portrait-mode JPEG) are automatically rotated based on their EXIF orientation tag before face detection, eliminating the most common cause of enrollment failures.
 - **Universal Webcam Support for Enrollment:** The face registration page intelligently selects the front/selfie camera on phones, the built-in webcam on laptops, and Camera 0 (`/dev/video0`) when the browser runs directly on the Raspberry Pi — all automatically.
 - **20×4 LCD Display:** Real-time hardware status display shows "Total Attendee: X / Name Present" during attendance, and "Present = X / Head Count = X / ✓ Match" during head count. Dashboard mirrors the LCD in real-time.
