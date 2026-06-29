@@ -9,6 +9,7 @@ from models.user import User, UserRole
 from models.attendance import Attendance, AttendanceStatus
 from models.course import Course
 from models.enrollment import Enrollment
+from models.attendance_session import AttendanceSession
 
 router = APIRouter()
 
@@ -63,8 +64,6 @@ async def get_dashboard_stats(
     )
 
     # Get weekly trend (last 5 active days)
-    from models.attendance_session import AttendanceSession
-
     enrolled_subq = (
         select(func.count(Enrollment.id))
         .where(Enrollment.course_id == AttendanceSession.course_id)
