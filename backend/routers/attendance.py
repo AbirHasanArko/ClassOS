@@ -122,6 +122,26 @@ async def end_session(
 
     return session
 
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_session(
+    session_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """Delete an attendance session and all its records (admin only)."""
+    result = await db.execute(select(AttendanceSession).where(AttendanceSession.id == session_id))
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    # If active, clean up memory
+    if session.status == SessionStatus.ACTIVE:
+        session_manager.active_sessions.pop(str(session_id), None)
+        
+    await db.delete(session)
+    await db.commit()
+
 
 @router.post("/sessions/{session_id}/mode", response_model=ModeSwitchOut)
 async def switch_session_mode(

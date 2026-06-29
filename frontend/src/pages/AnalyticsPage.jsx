@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import client from '../api/client';
 import { getDashboardStats, getSessionHistory, downloadSessionCsv } from '../api/analytics';
-import { getSessionRoster } from '../api/attendance';
+import { getSessionRoster, deleteSession } from '../api/attendance';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Download, Eye, FileSpreadsheet, X, Calendar, User as UserIcon, Clock } from 'lucide-react';
+import { Download, Eye, FileSpreadsheet, X, Calendar, User as UserIcon, Clock, Trash2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,6 +30,7 @@ ChartJS.register(
 
 export const AnalyticsPage = () => {
   const { theme } = useTheme();
+  const { currentUser } = useAuth();
   const isDark = theme === 'dark';
   
   const textColor = isDark ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
@@ -92,6 +94,19 @@ export const AnalyticsPage = () => {
       alert("Failed to download CSV. Please check console for details.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId) => {
+    if (!window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await deleteSession(sessionId);
+      setSessions(sessions.filter(s => s.id !== sessionId));
+    } catch (err) {
+      console.error('Failed to delete session', err);
+      alert('Failed to delete session.');
     }
   };
 
@@ -370,6 +385,11 @@ export const AnalyticsPage = () => {
                           <Button size="sm" disabled={isDownloading} onClick={(e) => handleDownloadCsv(session.id, e)}>
                             <Download className="h-4 w-4 mr-1" /> CSV
                           </Button>
+                          {currentUser?.role === 'admin' && (
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteSession(session.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );

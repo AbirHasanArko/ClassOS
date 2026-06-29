@@ -13,6 +13,11 @@ export const endSession = async (sessionId) => {
   return response.data;
 };
 
+export const deleteSession = async (sessionId) => {
+  const response = await client.delete(`/attendance/sessions/${sessionId}`);
+  return response.data;
+};
+
 export const switchSessionMode = async (sessionId, mode) => {
   const response = await client.post(`/attendance/sessions/${sessionId}/mode`, { mode });
   return response.data;
