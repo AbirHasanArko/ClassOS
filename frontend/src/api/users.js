@@ -24,3 +24,8 @@ export const deleteUser = async (userId) => {
   const response = await client.delete(`/users/${userId}`);
   return response.data;
 };
+
+export const updatePassword = async (passwordData) => {
+  const response = await client.put('/users/me/password', passwordData);
+  return response.data;
+};

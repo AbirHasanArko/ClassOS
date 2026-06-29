@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.dependencies import get_db, require_role
-from backend.schemas.user import UserCreate, UserOut, UserUpdate, UserListOut
+from backend.dependencies import get_db, require_role, get_current_user
+from backend.schemas.user import UserCreate, UserOut, UserUpdate, UserListOut, PasswordResetRequest
 from models.user import User, UserRole
 from models.teacher import Teacher
 from models.admin import Admin
@@ -136,6 +136,20 @@ async def get_teachers(
             "profile_id": u.teacher_profile.id,
         })
     return items
+
+@router.put("/me/password", status_code=status.HTTP_200_OK)
+async def reset_password(
+    request: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from backend.auth.password import verify_password
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    
+    current_user.password_hash = get_password_hash(request.new_password)
+    await db.commit()
+    return {"message": "Password updated successfully"}
 
 @router.put("/{user_id}", response_model=UserOut)
 async def update_user(

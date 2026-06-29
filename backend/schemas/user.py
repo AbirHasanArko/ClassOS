@@ -35,3 +35,7 @@ class UserListOut(UserOut):
     employee_id: Optional[str] = None
     department: Optional[str] = None
     profile_id: Optional[UUID] = None
+
+class PasswordResetRequest(BaseModel):
+    current_password: str
+    new_password: str
