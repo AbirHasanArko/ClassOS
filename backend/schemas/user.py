@@ -1,10 +1,10 @@
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict
 from models.user import UserRole
 
 class UserBase(BaseModel):
-    email: EmailStr
+    email: str
     role: UserRole
 
 class UserCreate(UserBase):
@@ -22,7 +22,7 @@ class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     password: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
