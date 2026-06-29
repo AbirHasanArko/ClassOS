@@ -126,7 +126,7 @@ async def get_session_history(
     stmt = (
         select(AttendanceSession, Course, Teacher, enrolled_subq.label("enrolled_count"))
         .join(Course, AttendanceSession.course_id == Course.id)
-        .outerjoin(Teacher, func.coalesce(AttendanceSession.teacher_id, Course.teacher_id) == Teacher.id)
+        .outerjoin(Teacher, AttendanceSession.teacher_id == Teacher.id)
         .order_by(AttendanceSession.started_at.desc())
     )
     
