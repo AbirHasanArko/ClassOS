@@ -10,7 +10,12 @@ Before any classes begin, the system administrator or teacher must enroll studen
 1. Navigate to the **Courses** page in the dashboard.
 2. Click **Add Course** to create a new course.
 3. Provide the Course Code (e.g., `CS101`) and Course Name (e.g., `Intro to Computer Science`).
-4. You can also **Edit** a course's name and schedule or **Delete** it entirely using the action buttons on the course card.
+4. **Assign Teachers:** Click the "Assign Teachers" button on the course card to link one or more registered teachers to the course. Teachers will only see analytics and session histories for the courses they are explicitly assigned to.
+5. You can also **Edit** a course's name and schedule or **Delete** it entirely using the action buttons on the course card.
+
+### Step 1.1b: Manage Admin/Teacher Users
+1. Navigate to the **Users** page in the dashboard (Admin only).
+2. Add new Admin or Teacher accounts. The system automatically provisions the decoupled underlying user profiles.
 
 ### Step 1.2: Manage Students
 1. Navigate to the **Students** page in the dashboard.

@@ -68,7 +68,8 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 - **Live MJPEG Video Streaming:** Teachers watch Camera 0 or Camera 1 (mode-dependent) with annotated AI bounding boxes in real-time.
 - **Real-Time WebSocket Sync:** As students are detected, their full names instantly appear on the teacher's screen without refreshing.
 - **Full-Stack Analytics:** Automatic data aggregation with CSV exports, visual charts, and historical session logs.
-- **Role-Based Access Control:** Distinct experiences for Admins, Teachers, and Students.
+- **Advanced Role-Based Access Control:** Distinct experiences for Admins, Teachers, and Students. User accounts are decoupled from profiles, allowing teachers secure, sandboxed access to analytics and session histories strictly for the courses they are assigned to teach.
+- **Custom Aesthetic Branding:** Modern, visually stunning UI featuring custom vector SVG logos, sleek micro-animations, and dynamic dark mode support.
 - **Ghost-Session Resiliency:** The backend automatically recovers and cleans up abandoned sessions if a teacher's laptop disconnects unexpectedly.
 - **One-Command Deployment:** Completely containerized with Docker Compose.
 
