@@ -46,7 +46,8 @@ class AttendanceEngine:
             try:
                 from lcd_service.display import lcd_display
                 self._lcd = lcd_display
-            except Exception:
+            except Exception as e:
+                print(f"Failed to load LCD service: {e}")
                 self._lcd = None
         return self._lcd
 
@@ -63,6 +64,7 @@ class AttendanceEngine:
         head_count_pipeline.initialize()
 
         self.is_running = True
+        if self.lcd: self.lcd.show_idle()
 
         # Start the background task that consumes AI results
         asyncio.create_task(self._engine_loop())
