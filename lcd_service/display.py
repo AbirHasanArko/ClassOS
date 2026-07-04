@@ -185,8 +185,9 @@ class LCDDisplay:
     def show_idle(self):
         """Display idle/branding screen when no session is active."""
         self._write(
-            line1="   ClassOS  v2.0    ",
+            line1="      ClassOS       ",
             line2=" AI Attendance Sys  ",
+
             line3="                    ",
             line4="      Ready...      ",
         )

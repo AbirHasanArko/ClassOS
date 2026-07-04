@@ -116,7 +116,7 @@ export const AttendancePage = () => {
 
   // LCD mirror state — 4 lines of 20 chars
   const [lcdLines, setLcdLines] = useState([
-    '   ClassOS  v2.0    ',
+    '      ClassOS       ',
     ' AI Attendance Sys  ',
     '                    ',
     '      Ready...      ',
@@ -257,7 +257,7 @@ export const AttendancePage = () => {
       setActiveSession(null);
       setSessionMode('attendance');
       setLcdLines([
-        '   ClassOS  v2.0    ',
+        '      ClassOS       ',
         ' AI Attendance Sys  ',
         '                    ',
         '      Ready...      ',
