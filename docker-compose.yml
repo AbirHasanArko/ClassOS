@@ -41,7 +41,7 @@ services:
       DEBUG: ${DEBUG:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Camera 0 — entry/face recognition camera (CAM/DISP 0 on RPi5)
-      CAMERA_DEVICE_INDEX: ${CAMERA_DEVICE_INDEX:-0}
+      CAMERA_DEVICE_INDEX: ${CAMERA_DEVICE_INDEX:-10}
       # Camera 1 — classroom overhead / head count camera (CAM/DISP 1 on RPi5)
       # Default /dev/video2 because RPi Camera Module on CAM 1 appears as video2
       CAMERA_1_DEVICE_INDEX: ${CAMERA_1_DEVICE_INDEX:-2}
@@ -64,7 +64,7 @@ services:
     # Raspberry Pi hardware device mappings.
     # Use `ls /dev/video*` and `i2cdetect -y 1` to confirm indices.
     devices:
-      - /dev/video0:/dev/video0       # Camera 0 — entry camera (face recognition)
+      - /dev/video10:/dev/video10     # Camera 0 — v4l2loopback virtual device (IMX519 bridge)
       - /dev/video2:/dev/video2       # Camera 1 — overhead camera (head counting)
       - /dev/ttyAMA0:/dev/ttyAMA0     # R307 fingerprint sensor (UART0 on Pi 5)
       - /dev/i2c-1:/dev/i2c-1         # I2C bus for 20x4 LCD display

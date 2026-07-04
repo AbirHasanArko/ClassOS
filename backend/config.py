@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     CAMERA_RESOLUTION_WIDTH: int = 1280
     CAMERA_RESOLUTION_HEIGHT: int = 720
     CAMERA_FPS: int = 30
-    CAMERA_DEVICE_INDEX: int = 0  # /dev/video0 (CAM 0 / DISP 0)
+    CAMERA_DEVICE_INDEX: int = 10  # /dev/video10 (v4l2loopback virtual device for IMX519)
 
     # ----- Camera 1 — Classroom Overhead / Head Count (CAM/DISP 1 on RPi5) -----
     # Used exclusively for YOLOv8 head counting in Verify Head Count mode.
