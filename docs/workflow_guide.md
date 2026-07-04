@@ -74,13 +74,12 @@ After starting a session, you will see two mode buttons at the top of the attend
 
 The system is in **Take Attendance** mode by default. In this mode:
 - **Camera 0** (connected to CAM/DISP 0 on Raspberry Pi 5) activates and streams the live feed.
-- The **Face Recognition AI** processes each frame in real-time:
-  - **>= 70% confidence**: Student is automatically marked **PRESENT** (green bounding box). Their name and "Present" appears on the physical LCD display.
+  - **>= 70% confidence**: Student is automatically marked **PRESENT** (green bounding box). Their name and "Present" appears on the physical LCD display. The LCD engages a 3-second time-lock to prevent subsequent AI scans of the same face from rapidly overwriting the success message.
   - **30%–69% confidence**: A **Fingerprint Verification Needed** prompt appears on the dashboard. The physical LCD shows the fingerprint prompt. The student places their finger on the R307 sensor.
   - **< 30% confidence**: Face is labeled "Unknown" and ignored.
-  - **No face detected at all**: A **"Direct Fingerprint Scan"** button is always visible in the dashboard for students who are not being detected (e.g., wearing a hijab, mask, or in poor lighting). They can scan directly without any face detection.
+  - **No face detected at all**: A **"Direct Fingerprint Scan"** button is always visible in the dashboard for students who are not being detected (e.g., wearing a hijab, mask, or in poor lighting). Scanning directly from the UI will synchronize perfectly with the hardware and forcibly update the physical LCD to show the success message.
 - The **LCD Display** shows:
-  ```
+  ```text
   Total Attendee: XX
   <Student Name>
      >> Present

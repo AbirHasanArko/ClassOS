@@ -429,6 +429,10 @@ For deeper technical dives, please refer to the dedicated documentation files:
 - [x] **USB Webcam Auto-Fallback:** Camera 0 and Camera 1 automatically fall back to USB webcams if CSI cameras are unavailable. Configurable via `CAMERA_USB_FALLBACK_INDICES` in `.env`. ✅ Implemented v2.1
 - [x] **EXIF-Aware Face Enrollment:** Portrait-mode phone photos are auto-rotated using EXIF metadata before face detection, fixing gallery upload failures. ✅ Implemented v2.1
 - [x] **Smart Webcam Selection:** Face registration webcam correctly uses front camera on phones, built-in webcam on laptops, and Camera 0 on Raspberry Pi. ✅ Implemented v2.1
+- [x] **Buttery Smooth Video Streaming:** Completely decoupled AI inference rate from the MJPEG streaming rate. The camera feeds run at a flawless 30 FPS while AI annotations (bounding boxes) gracefully superimpose at their own refresh rate. ✅ Implemented v2.1
+- [x] **Perfect UI-Hardware Synchronization:** Simulated fingerprint scans on the web dashboard instantly trigger physical hardware LCD updates, keeping physical and virtual feedback perfectly mirrored. ✅ Implemented v2.1
+- [x] **Hardware LCD Locking Mechanism:** Intelligent time-locking prevents high-frequency AI background loops from overwriting critical success messages (like fingerprint validations) on the physical LCD. ✅ Implemented v2.1
+- [x] **Pi 5 GPIO Docker Integration:** Seamless hardware pass-through in `docker-compose.yml` (`/dev/gpiochip0-4`) ensures the physical push-button works reliably inside the containerized environment. ✅ Implemented v2.1
 - [ ] **Offline Resilience:** Cache attendance data locally on the Raspberry Pi if the Wi-Fi drops and auto-sync when connection is restored.
 - [ ] **Biometric Data Encryption & Privacy:** Implement encryption at rest for biometric vectors and automated scripts to purge data for graduated students.
 - [ ] **Automated Notifications:** Email/SMS alerts for students when attendance drops below threshold, and weekly CSV reports for teachers.

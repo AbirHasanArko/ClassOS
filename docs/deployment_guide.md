@@ -186,10 +186,15 @@ Edit `docker-compose.yml` and **uncomment** the `devices` section under `backend
 ```yaml
 backend:
   devices:
-    - /dev/video0:/dev/video0       # Camera 0 — entry camera (face recognition)
-    - /dev/video2:/dev/video2       # Camera 1 — overhead camera (head counting)
+    - /dev/video42:/dev/video42       # Camera 0 (via v4l2loopback)
+    - /dev/video43:/dev/video43       # Camera 1 (via v4l2loopback)
     - /dev/ttyS0:/dev/ttyS0         # R307 fingerprint sensor (UART)
     - /dev/i2c-1:/dev/i2c-1         # I2C bus for 20x4 LCD display
+    - /dev/gpiochip0:/dev/gpiochip0 # GPIO for Push Button (Pi 5)
+    - /dev/gpiochip1:/dev/gpiochip1
+    - /dev/gpiochip2:/dev/gpiochip2
+    - /dev/gpiochip3:/dev/gpiochip3
+    - /dev/gpiochip4:/dev/gpiochip4
   privileged: true
 ```
 
