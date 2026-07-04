@@ -18,18 +18,18 @@ async def _generate_mjpeg(camera_instance, pipeline_instance, pipeline_flag_attr
         pipeline_instance: AI pipeline to check for annotated frames.
         pipeline_flag_attr: Attribute name on pipeline_instance to check (e.g. 'is_running').
     """
-    camera_instance.start_if_available()
-
     try:
         while True:
+            is_running = getattr(pipeline_instance, pipeline_flag_attr, False)
+            if not is_running:
+                # Privacy constraint: Do not stream if no active session is running
+                break
+
             # 1. Get raw frame (may be None if camera is unavailable)
             raw_frame = camera_instance.get_latest_frame()
 
-            # 2. Check if AI pipeline is running and has an annotated frame
-            is_running = getattr(pipeline_instance, pipeline_flag_attr, False)
-            annotated_frame = pipeline_instance.latest_annotated_frame if is_running else None
-
-            # 3. Stream annotated frame if available, otherwise raw frame
+            # 2. Stream annotated frame if available, otherwise raw frame
+            annotated_frame = pipeline_instance.latest_annotated_frame
             frame_to_stream = annotated_frame if annotated_frame is not None else raw_frame
 
             if frame_to_stream is not None:
