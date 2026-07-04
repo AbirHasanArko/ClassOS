@@ -2,6 +2,7 @@ import cv2
 import threading
 import time
 import numpy as np
+import subprocess
 from typing import Optional, List
 
 from backend.config import settings
@@ -82,6 +83,21 @@ class CameraManager:
         if self._running:
             return
 
+        # Start host systemd service via DBus
+        try:
+            svc_idx = '0' if self.device_index == 42 else '1'
+            print(f"Starting host camera bridge service {svc_idx} via DBus...")
+            subprocess.run([
+                "dbus-send", "--system", "--print-reply", 
+                "--dest=org.freedesktop.systemd1", "/org/freedesktop/systemd1", 
+                "org.freedesktop.systemd1.Manager.StartUnit", 
+                f"string:classos-camera-bridge-{svc_idx}.service", "string:replace"
+            ], check=True, capture_output=True)
+            # Give the bridge a moment to spin up and create the v4l2 device
+            time.sleep(1.5)
+        except Exception as e:
+            print(f"Failed to start host bridge via DBus: {e}")
+
         opened = False
         for idx in self._probe_order:
             print(f"Trying camera device index {idx}...")
@@ -153,6 +169,19 @@ class CameraManager:
             self.cap.release()
             self.cap = None
         self.active_device_index = None
+
+        # Stop host systemd service via DBus
+        try:
+            svc_idx = '0' if self.device_index == 42 else '1'
+            print(f"Stopping host camera bridge service {svc_idx} via DBus...")
+            subprocess.run([
+                "dbus-send", "--system", "--print-reply", 
+                "--dest=org.freedesktop.systemd1", "/org/freedesktop/systemd1", 
+                "org.freedesktop.systemd1.Manager.StopUnit", 
+                f"string:classos-camera-bridge-{svc_idx}.service", "string:replace"
+            ], check=True, capture_output=True)
+        except Exception as e:
+            print(f"Failed to stop host bridge via DBus: {e}")
 
 
 # ----- Singleton Instances -----

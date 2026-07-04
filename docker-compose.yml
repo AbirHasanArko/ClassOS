@@ -53,6 +53,7 @@ services:
       FACE_CONFIDENCE_FINGERPRINT: 0.30
     volumes:
       - face_data:/app/data/faces
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
     ports:
       - "8000:8000"
     depends_on:
