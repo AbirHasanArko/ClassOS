@@ -120,11 +120,24 @@ class FingerprintSensor:
         # This is a simplified placeholder structure.
         return False, None, None
 
+    def _wait_for_image(self, timeout: int = 15) -> bool:
+        """Poll the sensor until an image is captured or timeout is reached."""
+        if self.mock_mode:
+            time.sleep(1) # simulate user interaction
+            return True
+            
+        start = time.time()
+        while time.time() - start < timeout:
+            if self.capture_image():
+                return True
+            time.sleep(0.2)
+        return False
+
     def enroll_flow(self, location_id: int) -> bool:
         """Complete workflow to enroll a finger. Requires two placements."""
         print("Please place finger on sensor...")
         # Step 1: GenImg
-        if not self.capture_image(): return False
+        if not self._wait_for_image(): return False
         # Step 2: Img2Tz (Buffer 1)
         if not self.generate_template(1): return False
         
@@ -132,7 +145,7 @@ class FingerprintSensor:
         time.sleep(2) # Wait for finger to lift
         
         # Step 3: GenImg
-        if not self.capture_image(): return False
+        if not self._wait_for_image(): return False
         # Step 4: Img2Tz (Buffer 2)
         if not self.generate_template(2): return False
         
@@ -146,7 +159,7 @@ class FingerprintSensor:
 
     def verify_flow(self) -> Tuple[bool, Optional[int]]:
         """Complete workflow to read finger and return matching ID."""
-        if not self.capture_image(): return False, None
+        if not self._wait_for_image(): return False, None
         if not self.generate_template(1): return False, None
         
         success, match_id, score = self.search_fingerprint()
