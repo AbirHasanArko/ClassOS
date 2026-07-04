@@ -58,7 +58,7 @@ exec rpicam-vid \
     -framerate "$FPS" \
     -i pipe:0 \
     -f v4l2 \
-    -pix_fmt yuv420p \
+    -pix_fmt yuyv422 \
     /dev/video0
 SCRIPT
 
