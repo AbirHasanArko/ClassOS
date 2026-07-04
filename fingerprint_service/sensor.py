@@ -117,14 +117,28 @@ class FingerprintSensor:
             return True, 1, 95
             
         # Cmd 0x04: Search
-        # Search Buffer 1, Start Page 0, End Page 200 (for example)
+        # Search Buffer 1, Start Page 0, End Page 200
         buffer_id = 0x01
         start_page = 0
         page_num = 200
         
-        # Calculate checksum...
-        # For brevity in this implementation plan, we omit full hex math.
-        # This is a simplified placeholder structure.
+        chk = 0x01 + 0x00 + 0x08 + 0x04 + buffer_id + (start_page >> 8) + (start_page & 0xFF) + (page_num >> 8) + (page_num & 0xFF)
+        cmd = bytes([
+            0x01, 0x00, 0x08, 0x04, buffer_id, 
+            (start_page >> 8) & 0xFF, start_page & 0xFF, 
+            (page_num >> 8) & 0xFF, page_num & 0xFF,
+            (chk >> 8) & 0xFF, chk & 0xFF
+        ])
+        
+        resp = self._send_command(cmd)
+        
+        # Success response is 16 bytes total:
+        # 9 bytes header + 7 bytes data (1 byte CC, 2 bytes ID, 2 bytes Score, 2 bytes Checksum)
+        if len(resp) >= 14 and resp[9] == 0x00:
+            match_id = (resp[10] << 8) | resp[11]
+            score = (resp[12] << 8) | resp[13]
+            return True, match_id, score
+            
         return False, None, None
 
     def _wait_for_image(self, timeout: int = 15) -> bool:
