@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # ----- Camera 1 — Classroom Overhead / Head Count (CAM/DISP 1 on RPi5) -----
     # Used exclusively for YOLOv8 head counting in Verify Head Count mode.
     # If unavailable, the system gracefully falls back to single-camera mode.
-    CAMERA_1_DEVICE_INDEX: int = 2  # /dev/video2 (CAM 1 / DISP 1 on RPi5)
+    CAMERA_1_DEVICE_INDEX: int = 43  # /dev/video43 (v4l2loopback virtual device for Headcount)
 
     # ----- USB Webcam Fallback -----
     # Comma-separated list of device indices to try when the preferred
