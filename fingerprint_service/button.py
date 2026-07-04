@@ -8,6 +8,10 @@ from models.attendance import AttendanceMethod
 from sqlalchemy import select
 from database.connection import async_session_factory
 from models.fingerprint import FingerprintData
+import logging
+
+logger = logging.getLogger("classos.button")
+
 
 class HardwareButtonListener:
     def __init__(self):
@@ -21,9 +25,9 @@ class HardwareButtonListener:
             from gpiozero import Button
             self.button = Button(settings.BUTTON_GPIO_PIN, bounce_time=0.5)
             self.button.when_pressed = self._on_pressed
-            print(f"Hardware button listener started on GPIO {settings.BUTTON_GPIO_PIN}")
+            logger.info(f"Hardware button listener started on GPIO {settings.BUTTON_GPIO_PIN}")
         except Exception as e:
-            print(f"Could not initialize hardware button (Mock mode or not on RPi): {e}")
+            logger.error(f"Could not initialize hardware button (Mock mode or not on RPi): {e}")
 
     def stop(self):
         if self.button:

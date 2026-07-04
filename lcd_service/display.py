@@ -21,9 +21,13 @@ Fallback:
 """
 
 import threading
+import logging
 from typing import Optional
 
 from backend.config import settings
+
+logger = logging.getLogger("classos.lcd")
+
 
 
 # ─── Custom character bitmaps (5x8 pixels, HD44780 CGRAM format) ─────────────
@@ -98,7 +102,7 @@ class LCDDisplay:
         self._mock_mode = False  # Falls back to stdout if True
 
         if not settings.LCD_ENABLED:
-            print("LCD: Disabled via LCD_ENABLED=false")
+            logger.info("LCD: Disabled via LCD_ENABLED=false")
             self._mock_mode = True
             return
 
@@ -130,17 +134,16 @@ class LCDDisplay:
             self._lcd.create_char(CGRAM_CROSS, CHAR_CROSS)
 
             self._enabled = True
-            print(f"✅ LCD: 20x4 I2C LCD initialized at address 0x{settings.LCD_I2C_ADDRESS:02X} "
-                  f"on bus {settings.LCD_I2C_BUS}")
+            logger.info(f"✅ LCD: 20x4 I2C LCD initialized at address 0x{settings.LCD_I2C_ADDRESS:02X} on bus {settings.LCD_I2C_BUS}")
 
             # Show splash screen
             self.show_idle()
 
         except ImportError as e:
-            print(f"⚠️  LCD: RPLCD or smbus2 not installed ({e}). Falling back to console mode.")
+            logger.warning(f"⚠️  LCD: RPLCD or smbus2 not installed ({e}). Falling back to console mode.")
             self._mock_mode = True
         except Exception as e:
-            print(f"⚠️  LCD: Hardware not available ({e}). Falling back to console mode.")
+            logger.error(f"⚠️  LCD: Hardware not available ({e}). Falling back to console mode.")
             self._mock_mode = True
 
     def _write(self, line1: str = "", line2: str = "", line3: str = "", line4: str = ""):
@@ -241,7 +244,7 @@ class LCDDisplay:
     def clear(self):
         """Clear the LCD display."""
         if self._mock_mode:
-            print("LCD: [cleared]")
+            logger.info("LCD: [cleared]")
             return
         if self._enabled and self._lcd:
             with self._lock:

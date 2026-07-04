@@ -11,7 +11,11 @@ from models.student import Student
 from attendance_engine.session_manager import session_manager, MODE_ATTENDANCE, MODE_HEADCOUNT
 from ai_engine.pipeline import face_pipeline, head_count_pipeline
 from ai_engine.config import ai_config
+import logging
 from camera_service.camera import camera_0, camera_1
+
+logger = logging.getLogger("classos.engine")
+
 
 
 class AttendanceEngine:
@@ -47,7 +51,7 @@ class AttendanceEngine:
                 from lcd_service.display import lcd_display
                 self._lcd = lcd_display
             except Exception as e:
-                print(f"Failed to load LCD service: {e}")
+                logger.error(f"Failed to load LCD service: {e}")
                 self._lcd = None
         return self._lcd
 
@@ -56,7 +60,7 @@ class AttendanceEngine:
         if self.is_running:
             return
 
-        print("Starting Attendance Engine...")
+        logger.info("Starting Attendance Engine...")
         await session_manager.load_active_sessions()
 
         # Initialize AI models
@@ -404,16 +408,16 @@ class AttendanceEngine:
         try:
             if self.lcd:
                 self.lcd.show_idle()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"LCD Error (idle): {e}")
 
     def _lcd_show_attendance(self, total_present: int, student_name: str):
         """Update LCD with latest attendance info."""
         try:
             if self.lcd:
                 self.lcd.show_attendance_update(total_present, student_name)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"LCD Error (attendance): {e}")
 
     def _lcd_show_headcount(self, present_count: int, head_count: int):
         """Update LCD with head count comparison."""
