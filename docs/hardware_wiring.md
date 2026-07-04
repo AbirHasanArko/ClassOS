@@ -104,12 +104,12 @@ sudo nano /boot/firmware/config.txt
 Add these lines:
 ```
 enable_uart=1
-dtoverlay=uart0
+dtoverlay=uart0-pi5
 ```
 
 Disable the serial console (it conflicts with UART):
 ```bash
-sudo systemctl disable serial-getty@ttyS0.service
+sudo systemctl disable serial-getty@ttyAMA0.service
 ```
 
 Reboot:
@@ -121,12 +121,12 @@ sudo reboot
 
 ```bash
 # Check if UART device exists
-ls -la /dev/ttyS0
+ls -la /dev/ttyAMA0
 
 # Quick test with Python
 python3 -c "
 import serial
-ser = serial.Serial('/dev/ttyS0', 57600, timeout=2)
+ser = serial.Serial('/dev/ttyAMA0', 57600, timeout=2)
 print('UART port opened:', ser.is_open)
 ser.close()
 "
