@@ -146,7 +146,7 @@ class CameraManager:
                     self._latest_frame = frame
 
             # Yield slightly to prevent 100% CPU lock
-            time.sleep(1.0 / self.fps)
+            time.sleep(0.005)
 
     def get_latest_frame(self) -> Optional[np.ndarray]:
         """Return a copy of the latest captured frame."""

@@ -47,8 +47,8 @@ async def _generate_mjpeg(camera_instance, pipeline_instance, pipeline_flag_attr
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-            # Limit streaming framerate to save bandwidth (~15 FPS)
-            await asyncio.sleep(1.0 / 15.0)
+            # Limit streaming framerate to save bandwidth (~30 FPS)
+            await asyncio.sleep(1.0 / 30.0)
 
     except asyncio.CancelledError:
         # Client disconnected — clean exit
@@ -93,7 +93,7 @@ async def enroll_stream():
                     if ret:
                         yield (b'--frame\r\n'
                                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-                await asyncio.sleep(1.0 / 15.0)
+                await asyncio.sleep(1.0 / 30.0)
         except asyncio.CancelledError:
             pass
         except Exception as e:
