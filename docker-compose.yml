@@ -68,6 +68,7 @@ services:
       - /dev/video43:/dev/video43     # Camera 1 — v4l2loopback virtual device (Headcount)
       - /dev/ttyAMA0:/dev/ttyAMA0     # R307 fingerprint sensor (UART0 on Pi 5)
       - /dev/i2c-1:/dev/i2c-1         # I2C bus for 20x4 LCD display
+      - /dev/gpiochip4:/dev/gpiochip4 # Raspberry Pi 5 GPIO header chip
     privileged: true
     networks:
       - classos-net
