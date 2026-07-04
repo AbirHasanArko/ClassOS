@@ -14,9 +14,11 @@ echo "  ClassOS: Installing v4l2loopback for IMX519 CSI Camera  "
 echo "=========================================================="
 
 # 1. Install dependencies
-echo "[1/4] Installing v4l2loopback-dkms and ffmpeg..."
+echo "[1/4] Installing v4l2loopback and GStreamer..."
 sudo apt-get update
-sudo apt-get install -y linux-headers-rpi-v8 v4l2loopback-dkms v4l2loopback-utils ffmpeg
+sudo apt-get install -y linux-headers-rpi-v8 v4l2loopback-dkms v4l2loopback-utils \
+    gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+    gstreamer1.0-libcamera
 
 # 2. Configure module to load on boot and create /dev/video0
 echo "[2/4] Configuring v4l2loopback module..."
@@ -30,36 +32,22 @@ sudo modprobe v4l2loopback video_nr=0 card_label="ClassOS Virtual Camera" exclus
 # 3. Create the systemd service to continuously pipe the camera
 echo "[3/4] Creating systemd service..."
 
-# Create wrapper script that pipes rpicam-vid → ffmpeg → /dev/video0
+# Create wrapper script that uses GStreamer: libcamerasrc → v4l2sink
+# GStreamer's v4l2sink properly negotiates V4L2 formats with v4l2loopback,
+# unlike ffmpeg's v4l2 output muxer which fails with ioctl(VIDIOC_G_FMT).
 sudo tee /usr/local/bin/classos-camera-bridge.sh > /dev/null <<'SCRIPT'
 #!/bin/bash
 # ClassOS Camera Bridge: IMX519 (libcamera) → v4l2loopback (/dev/video0)
 #
-# rpicam-vid outputs raw YUV420 to stdout.
-# ffmpeg reads it as rawvideo and writes proper V4L2 frames to /dev/video0.
+# Uses GStreamer with libcamerasrc (native libcamera integration) to capture
+# frames from the IMX519 and write them to v4l2loopback via v4l2sink.
 
-WIDTH=1280
-HEIGHT=720
-FPS=30
-
-exec rpicam-vid \
-    --camera 0 \
-    -t 0 \
-    --width "$WIDTH" \
-    --height "$HEIGHT" \
-    --framerate "$FPS" \
-    --codec yuv420 \
-    --nopreview \
-    -o - \
-  | ffmpeg \
-    -f rawvideo \
-    -pixel_format yuv420p \
-    -video_size "${WIDTH}x${HEIGHT}" \
-    -framerate "$FPS" \
-    -i pipe:0 \
-    -f v4l2 \
-    -pix_fmt yuyv422 \
-    /dev/video0
+exec gst-launch-1.0 -e \
+    libcamerasrc camera-name="$(rpicam-hello --list-cameras 2>&1 | grep -oP '\(/base/.*?\)' | head -1 | tr -d '()')" \
+    ! "video/x-raw,width=1280,height=720,framerate=30/1" \
+    ! videoconvert \
+    ! "video/x-raw,format=YUY2" \
+    ! v4l2sink device=/dev/video0
 SCRIPT
 
 sudo chmod +x /usr/local/bin/classos-camera-bridge.sh
