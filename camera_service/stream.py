@@ -70,6 +70,34 @@ async def generate_headcount_stream():
     async for chunk in _generate_mjpeg(camera_1, head_count_pipeline, "is_running"):
         yield chunk
 
+@router.get("/enroll")
+async def enroll_stream():
+    """
+    MJPEG endpoint specifically for face enrollment. 
+    Dynamically starts Camera 0 and streams raw frames.
+    Stops the camera when the client disconnects.
+    """
+    async def _enroll_generator():
+        try:
+            camera_0.start()
+            while True:
+                frame = camera_0.get_latest_frame()
+                if frame is not None:
+                    ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                    if ret:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                await asyncio.sleep(1.0 / 15.0)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            print(f"Enroll stream error: {e}")
+        finally:
+            # Safely release the hardware
+            camera_0.stop()
+
+    return StreamingResponse(_enroll_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+
 
 @router.get("/live")
 async def live_video_feed():

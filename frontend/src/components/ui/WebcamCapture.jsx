@@ -20,8 +20,10 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
   const [error, setError] = useState(null);
   const [captures, setCaptures] = useState([]); // [{ blob, url }]
   const [isCapturing, setIsCapturing] = useState(false);
+  const [useSystemCamera, setUseSystemCamera] = useState(false); // Toggle between local webcam and Pi camera
+  const imgRef = useRef(null); // Reference for the server MJPEG img stream
 
-  // ── Start webcam stream ──────────────────────────────────────────────────
+  // ── Start local webcam stream ────────────────────────────────────────────
   const startStream = useCallback(async () => {
     setError(null);
     setIsReady(false);
@@ -82,11 +84,16 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
     setIsReady(false);
   }, []);
 
-  // Start on mount, stop on unmount
+  // Start on mount, stop on unmount (only for local webcam)
   useEffect(() => {
-    startStream();
+    if (!useSystemCamera) {
+      startStream();
+    } else {
+      stopStream();
+      setIsReady(true); // MJPEG stream is "always ready" when img loads
+    }
     return () => stopStream();
-  }, [startStream, stopStream]);
+  }, [useSystemCamera, startStream, stopStream]);
 
   // Notify parent whenever captures change
   useEffect(() => {
@@ -103,15 +110,24 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
 
   // ── Capture a frame ──────────────────────────────────────────────────────
   const handleCapture = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !isReady) return;
     if (captures.length >= maxCaptures) return;
+    if (!useSystemCamera && (!videoRef.current || !isReady)) return;
+    if (useSystemCamera && !imgRef.current) return;
 
     setIsCapturing(true);
-    const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    if (useSystemCamera) {
+      const img = imgRef.current;
+      canvas.width = img.naturalWidth || 640;
+      canvas.height = img.naturalHeight || 480;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    } else {
+      const video = videoRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+    }
 
     canvas.toBlob(
       (blob) => {
@@ -138,18 +154,43 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
 
   return (
     <div className="space-y-4">
+      {/* Camera Toggle */}
+      <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg border">
+        <span className="text-sm font-medium text-muted-foreground ml-2">
+          {useSystemCamera ? "Using ClassOS Door Camera" : "Using Local Device Webcam"}
+        </span>
+        <Button 
+          type="button" 
+          variant="secondary" 
+          size="sm"
+          onClick={() => setUseSystemCamera(!useSystemCamera)}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Switch Camera
+        </Button>
+      </div>
+
       {/* Video preview */}
       <div className="relative rounded-lg overflow-hidden bg-black aspect-video w-full">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className={`w-full h-full object-cover transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
-        />
+        {!useSystemCamera ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ) : (
+          <img
+            ref={imgRef}
+            src="/api/stream/enroll"
+            alt="ClassOS Camera Stream"
+            className="w-full h-full object-cover"
+          />
+        )}
 
         {/* Loading state */}
-        {!isReady && !error && (
+        {!isReady && !error && !useSystemCamera && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-2">
             <Camera className="h-8 w-8 animate-pulse" />
             <span className="text-sm">Starting camera…</span>
@@ -157,7 +198,7 @@ export const WebcamCapture = ({ onCapture, maxCaptures = MAX_CAPTURES }) => {
         )}
 
         {/* Error state */}
-        {error && (
+        {error && !useSystemCamera && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-3 p-4">
             <AlertCircle className="h-8 w-8 text-red-400" />
             <p className="text-sm text-center text-white/80">{error}</p>
