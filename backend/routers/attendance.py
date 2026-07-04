@@ -267,7 +267,13 @@ async def mark_manual_attendance(
         "line4": "Mode: ATTENDANCE",
     })
 
+    # Update physical LCD
+    if request.status == AttendanceStatus.PRESENT:
+        from attendance_engine.engine import engine
+        engine._lcd_show_attendance(recognized_count, student_name)
+
     return record
+
 
 
 @router.get("/sessions/{session_id}/roster", response_model=list[AttendanceRosterItemOut])
