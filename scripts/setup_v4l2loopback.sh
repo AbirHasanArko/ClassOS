@@ -14,7 +14,7 @@
 
 set -e
 
-VDEV=10  # Virtual device number — /dev/video10
+VDEV=42  # Virtual device number — /dev/video42 (must be above all real CSI nodes 0-35)
 
 echo "=========================================================="
 echo "  ClassOS: Installing v4l2loopback for IMX519 CSI Camera  "
