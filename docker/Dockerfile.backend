@@ -45,6 +45,7 @@ COPY ai_engine/ ./ai_engine/
 COPY camera_service/ ./camera_service/
 COPY fingerprint_service/ ./fingerprint_service/
 COPY attendance_engine/ ./attendance_engine/
+COPY lcd_service/ ./lcd_service/
 COPY scripts/ ./scripts/
 
 # Create data directories
