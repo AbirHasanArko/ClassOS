@@ -50,17 +50,32 @@ fi
 # 3. Create the systemd service to continuously pipe the camera
 echo "[3/4] Creating systemd service..."
 
-# Create wrapper script that uses GStreamer: libcamerasrc → v4l2sink
+# Create wrapper script: rpicam-vid (capture + ISP) → GStreamer v4l2sink (output)
+# Why this hybrid approach?
+#   - rpicam-vid properly handles IMX519 ISP processing (raw Bayer → YUV420)
+#   - GStreamer's v4l2sink properly writes V4L2 frames to v4l2loopback
+#   - libcamerasrc alone fails to negotiate processed output for IMX519
+#   - ffmpeg's v4l2 output muxer fails with ioctl(VIDIOC_G_FMT)
 sudo tee /usr/local/bin/classos-camera-bridge.sh > /dev/null <<SCRIPT
 #!/bin/bash
-# ClassOS Camera Bridge: IMX519 (libcamera) → v4l2loopback (/dev/video${VDEV})
-#
-# Uses GStreamer with libcamerasrc (native libcamera integration) to capture
-# frames from the IMX519 and write them to v4l2loopback via v4l2sink.
+# ClassOS Camera Bridge: IMX519 (rpicam-vid) → v4l2loopback (/dev/video${VDEV})
 
-exec gst-launch-1.0 -e \\
-    libcamerasrc \\
-    ! "video/x-raw,width=1280,height=720,framerate=30/1" \\
+WIDTH=1280
+HEIGHT=720
+FPS=30
+
+exec rpicam-vid \\
+    --camera 0 \\
+    -t 0 \\
+    --width \$WIDTH \\
+    --height \$HEIGHT \\
+    --framerate \$FPS \\
+    --codec yuv420 \\
+    --nopreview \\
+    -o - \\
+  | gst-launch-1.0 -e \\
+    fdsrc \\
+    ! rawvideoparse width=\$WIDTH height=\$HEIGHT format=i420 framerate=\${FPS}/1 \\
     ! videoconvert \\
     ! "video/x-raw,format=YUY2" \\
     ! v4l2sink device=/dev/video${VDEV}
