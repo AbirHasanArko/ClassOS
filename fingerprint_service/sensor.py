@@ -33,7 +33,8 @@ class FingerprintSensor:
             self.ser.write(FINGERPRINT_HEADER + cmd)
             # Read header
             resp_header = self.ser.read(9)
-            if not resp_header:
+            if len(resp_header) < 9:
+                print(f"R307 error: incomplete header received ({len(resp_header)} bytes)")
                 return b""
             # Read length
             length = (resp_header[7] << 8) | resp_header[8]
@@ -62,7 +63,13 @@ class FingerprintSensor:
         resp = self._send_command(cmd)
         
         # Check confirmation code (byte 9)
-        return len(resp) >= 10 and resp[9] == 0x00
+        if len(resp) >= 10:
+            if resp[9] == 0x00:
+                return True
+            # resp[9] == 0x02 means no finger, which is normal during polling
+            if resp[9] != 0x02:
+                print(f"R307 GenImg unexpected code: {hex(resp[9])}")
+        return False
 
     def generate_template(self, buffer_id: int) -> bool:
         """Generate a character file from the image in CharBuffer1 or 2."""
