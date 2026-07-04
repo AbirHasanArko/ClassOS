@@ -23,11 +23,11 @@ sudo apt-get install -y linux-headers-rpi-v8 v4l2loopback-dkms v4l2loopback-util
 # 2. Configure module to load on boot and create /dev/video0
 echo "[2/4] Configuring v4l2loopback module..."
 echo "v4l2loopback" | sudo tee /etc/modules-load.d/v4l2loopback.conf > /dev/null
-echo "options v4l2loopback video_nr=0 card_label=\"ClassOS Virtual Camera\" exclusive_caps=1" | sudo tee /etc/modprobe.d/v4l2loopback.conf > /dev/null
+echo "options v4l2loopback video_nr=0 card_label=\"ClassOS Virtual Camera\" exclusive_caps=0" | sudo tee /etc/modprobe.d/v4l2loopback.conf > /dev/null
 
 # Unload if it's already loaded, then load with new options
 sudo modprobe -r v4l2loopback 2>/dev/null || true
-sudo modprobe v4l2loopback video_nr=0 card_label="ClassOS Virtual Camera" exclusive_caps=1
+sudo modprobe v4l2loopback video_nr=0 card_label="ClassOS Virtual Camera" exclusive_caps=0
 
 # 3. Create the systemd service to continuously pipe the camera
 echo "[3/4] Creating systemd service..."
@@ -60,7 +60,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStartPre=/usr/sbin/modprobe v4l2loopback video_nr=0 card_label="ClassOS Virtual Camera" exclusive_caps=1
+ExecStartPre=/usr/sbin/modprobe v4l2loopback video_nr=0 card_label="ClassOS Virtual Camera" exclusive_caps=0
 ExecStart=/usr/local/bin/classos-camera-bridge.sh
 Restart=always
 RestartSec=3
