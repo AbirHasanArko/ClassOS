@@ -57,6 +57,7 @@ exec rpicam-vid \
     --height "$HEIGHT" \
     --framerate "$FPS" \
     --codec yuv420 \
+    --autofocus-mode continuous \
     --nopreview \
     -o - \
   | gst-launch-1.0 -e \
