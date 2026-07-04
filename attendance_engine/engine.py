@@ -48,6 +48,8 @@ class AttendanceEngine:
     def __init__(self):
         self.is_running = False
         self._lcd = None  # Lazy-loaded
+        self._lcd_lock_until = 0.0
+
 
     @property
     def lcd(self):
@@ -268,11 +270,35 @@ class AttendanceEngine:
                 # 30%–69% → request fingerprint verification
                 # Broadcast so the dashboard shows a prompt
                 student_id_str = str(student_id)
+                
+                # Fetch student name for the LCD prompt
+                async with async_session_factory() as db:
+                    from models.student import Student
+                    from sqlalchemy import select
+                    stu_stmt = select(Student).where(Student.id == student_id)
+                    stu_res = await db.execute(stu_stmt)
+                    student = stu_res.scalar_one_or_none()
+                    student_name = student.full_name if student else student_id_str[:8]
+
                 await session_manager.broadcast_event(session_id, "fingerprint_required", {
                     "student_id": student_id_str,
                     "confidence": confidence,
                     "message": f"Low confidence ({confidence*100:.0f}%). Please use fingerprint sensor."
                 })
+
+                # Broadcast LCD mirror event
+                await session_manager.broadcast_event(session_id, "lcd_update", {
+                    "line1": "Fingerprint Needed! ",
+                    "line2": f"{student_name[:20]:<20s}",
+                    "line3": "Place finger on     ",
+                    "line4": "sensor & scan...    ",
+                })
+
+                import time
+                self._lcd_lock_until = time.time() + 3.0
+                self._lcd_show_fingerprint_prompt(student_name)
+
+
 
             else:
                 # < 30% → unknown face, ignored
@@ -419,11 +445,21 @@ class AttendanceEngine:
 
     def _lcd_show_attendance(self, total_present: int, student_name: str):
         """Update LCD with latest attendance info."""
+        import time
+        self._lcd_lock_until = time.time() + 3.0
         try:
             if self.lcd:
                 self.lcd.show_attendance_update(total_present, student_name)
         except Exception as e:
             logging.error(f"LCD Error (attendance): {e}")
+
+    def _lcd_show_fingerprint_prompt(self, student_name: str):
+        """Update LCD to prompt for fingerprint."""
+        try:
+            if self.lcd:
+                self.lcd.show_fingerprint_prompt(student_name)
+        except Exception as e:
+            logging.error(f"LCD Error (fingerprint): {e}")
 
     def _lcd_show_headcount(self, present_count: int, head_count: int):
         """Update LCD with head count comparison."""
