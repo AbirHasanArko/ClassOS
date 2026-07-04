@@ -84,7 +84,8 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=multi-user.target
+# Intentionally removed WantedBy so this does not start on boot.
+# It is dynamically started via DBus by the ClassOS backend.
 EOF
 
 # Create systemd service for Camera 1
@@ -101,7 +102,8 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=multi-user.target
+# Intentionally removed WantedBy so this does not start on boot.
+# It is dynamically started via DBus by the ClassOS backend.
 EOF
 
 # 4. Enable and start the services
