@@ -19,6 +19,12 @@ async def _generate_mjpeg(camera_instance, pipeline_instance, pipeline_flag_attr
         pipeline_flag_attr: Attribute name on pipeline_instance to check (e.g. 'is_running').
     """
     try:
+        # Wait up to 5 seconds for the session to start (handles frontend race condition)
+        for _ in range(50):
+            if getattr(pipeline_instance, pipeline_flag_attr, False):
+                break
+            await asyncio.sleep(0.1)
+
         while True:
             is_running = getattr(pipeline_instance, pipeline_flag_attr, False)
             if not is_running:
