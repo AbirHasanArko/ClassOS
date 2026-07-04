@@ -35,8 +35,10 @@ async def _generate_mjpeg(camera_instance, pipeline_instance, pipeline_flag_attr
             raw_frame = camera_instance.get_latest_frame()
 
             # 2. Stream annotated frame if available, otherwise raw frame
-            annotated_frame = pipeline_instance.latest_annotated_frame
-            frame_to_stream = annotated_frame if annotated_frame is not None else raw_frame
+            if raw_frame is not None:
+                frame_to_stream = pipeline_instance.draw_annotations(raw_frame)
+            else:
+                frame_to_stream = None
 
             if frame_to_stream is not None:
                 # Compress to JPEG — quality 70 is a good balance for WiFi streaming

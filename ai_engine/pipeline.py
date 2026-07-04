@@ -26,7 +26,7 @@ class FaceRecognitionPipeline:
     def __init__(self):
         self.frame_count = 0
         self.is_running = False
-        self.latest_annotated_frame: Optional[np.ndarray] = None
+        self.latest_faces = []
 
     async def initialize(self):
         """Load face embeddings from DB into memory before starting."""
@@ -45,7 +45,7 @@ class FaceRecognitionPipeline:
             Red    (0, 0, 255)   → < 30% / unknown
         """
         self.frame_count += 1
-        annotated_frame = frame.copy()
+        new_faces = []
 
         # 1. Face Detection — dlib HOG (fast, adequate for classroom distances)
         face_locations = face_detector.detect_faces(frame, ai_config.FACE_UPSAMPLE_NUM)
@@ -85,11 +85,16 @@ class FaceRecognitionPipeline:
                         "confidence": confidence
                     })
 
-                # Draw bounding box on the frame
-                draw_face_box(annotated_frame, face_loc, name, confidence, box_color)
+                new_faces.append({"box": face_loc, "name": name, "confidence": confidence, "color": box_color})
 
-        self.latest_annotated_frame = annotated_frame
-        return annotated_frame
+        self.latest_faces = new_faces
+        return frame
+
+    def draw_annotations(self, frame: np.ndarray) -> np.ndarray:
+        annotated = frame.copy()
+        for face in self.latest_faces:
+            draw_face_box(annotated, face["box"], face["name"], face["confidence"], face["color"])
+        return annotated
 
 
 class HeadCountPipeline:
@@ -107,7 +112,7 @@ class HeadCountPipeline:
         self.frame_count = 0
         self.last_head_count = 0
         self.is_running = False
-        self.latest_annotated_frame: Optional[np.ndarray] = None
+        self.latest_boxes = []
 
     def initialize(self):
         """Load the YOLOv8 model into memory."""
@@ -121,7 +126,6 @@ class HeadCountPipeline:
         Returns the annotated frame with bounding boxes.
         """
         self.frame_count += 1
-        annotated_frame = frame.copy()
 
         # Run YOLO every N frames (configurable, default 5) to conserve CPU
         if self.frame_count % ai_config.HEAD_COUNT_INTERVAL == 0:
@@ -135,20 +139,21 @@ class HeadCountPipeline:
                 "count": count,
             })
 
-            # Draw YOLO bounding boxes
-            for box in boxes:
-                draw_head_box(annotated_frame, box)
+            self.latest_boxes = boxes
 
-        # Overlay the latest head count on screen
+        return frame
+
+    def draw_annotations(self, frame: np.ndarray) -> np.ndarray:
+        annotated = frame.copy()
+        for box in self.latest_boxes:
+            draw_head_box(annotated, box)
         cv2.putText(
-            annotated_frame,
+            annotated,
             f"Head Count: {self.last_head_count}",
             (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2
         )
-
-        self.latest_annotated_frame = annotated_frame
-        return annotated_frame
+        return annotated
 
 
 # ----- Singleton Instances -----
