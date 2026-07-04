@@ -12,9 +12,15 @@ from attendance_engine.session_manager import session_manager, MODE_ATTENDANCE, 
 from ai_engine.pipeline import face_pipeline, head_count_pipeline
 from ai_engine.config import ai_config
 import logging
+import sys
 from camera_service.camera import camera_0, camera_1
 
 logger = logging.getLogger("classos.engine")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    logger.addHandler(handler)
+
 
 
 

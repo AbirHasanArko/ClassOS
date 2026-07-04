@@ -22,11 +22,17 @@ Fallback:
 
 import threading
 import logging
+import sys
 from typing import Optional
 
 from backend.config import settings
 
 logger = logging.getLogger("classos.lcd")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    logger.addHandler(handler)
+
 
 
 
