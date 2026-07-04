@@ -23,10 +23,11 @@ export const switchSessionMode = async (sessionId, mode) => {
   return response.data;
 };
 
-export const markAttendanceManual = async (sessionId, studentId, status) => {
+export const markAttendanceManual = async (sessionId, studentId, status, method = 'manual') => {
   const response = await client.post(`/attendance/sessions/${sessionId}/attendance`, {
     student_id: studentId,
     status: status,
+    method: method,
   });
   return response.data;
 };

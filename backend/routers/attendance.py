@@ -15,6 +15,7 @@ from models.attendance_session import AttendanceSession, SessionStatus
 from models.attendance import Attendance, AttendanceStatus, AttendanceMethod
 from models.course import Course
 from models.enrollment import Enrollment
+from models.student import Student
 from attendance_engine.session_manager import session_manager, MODE_ATTENDANCE, MODE_HEADCOUNT
 
 router = APIRouter()
@@ -219,18 +220,25 @@ async def mark_manual_attendance(
             session_id=session_id,
             student_id=request.student_id,
             status=request.status,
-            method=AttendanceMethod.MANUAL
+            method=request.method
         )
         db.add(record)
     else:
         record.status = request.status
-        record.method = AttendanceMethod.MANUAL
+        record.method = request.method
         record.marked_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(record)
 
+    # Fetch student name for dashboard and LCD
+    stu_stmt = select(Student).where(Student.id == request.student_id)
+    stu_res = await db.execute(stu_stmt)
+    student = stu_res.scalar_one_or_none()
+    student_name = student.full_name if student else str(request.student_id)[:8]
+
     # Update recognized_count if marked present
+    session_id_str = str(session_id)
     if request.status == AttendanceStatus.PRESENT:
         sess_stmt = select(AttendanceSession).where(AttendanceSession.id == session_id)
         sess_res = await db.execute(sess_stmt)
@@ -239,9 +247,25 @@ async def mark_manual_attendance(
         await db.commit()
 
         # Update in-memory cache
-        session_id_str = str(session_id)
         if session_id_str in session_manager.active_sessions:
             session_manager.mark_student_recognized(session_id_str, request.student_id)
+
+    # Broadcast attendance_marked with student name for dashboard
+    await session_manager.broadcast_event(session_id_str, "attendance_marked", {
+        "student_id": str(request.student_id),
+        "student_name": student_name,
+        "method": request.method.value,
+        "confidence": None,
+    })
+
+    # Broadcast LCD mirror event
+    recognized_count = session_manager.get_recognized_count(session_id_str)
+    await session_manager.broadcast_event(session_id_str, "lcd_update", {
+        "line1": f"Total Attendee:{recognized_count:3d}",
+        "line2": f"{student_name[:18]:18s}",
+        "line3": f"   >> {request.status.value.capitalize()}",
+        "line4": "Mode: ATTENDANCE",
+    })
 
     return record
 

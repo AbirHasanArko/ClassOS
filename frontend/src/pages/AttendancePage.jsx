@@ -295,7 +295,7 @@ export const AttendancePage = () => {
       if (result.success && result.student_id) {
         setFingerprintNeeded(false);
         // Explicitly mark attendance since the verify endpoint only returns the match
-        await markAttendanceManual(activeSession.id, result.student_id, 'present');
+        await markAttendanceManual(activeSession.id, result.student_id, 'present', 'fingerprint');
         await fetchRoster(activeSession.id);
         alert('Fingerprint recognized! Attendance marked.');
       } else {

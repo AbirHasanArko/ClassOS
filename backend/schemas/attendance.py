@@ -64,6 +64,7 @@ class AttendanceUpdate(BaseModel):
 class MarkAttendanceManual(BaseModel):
     student_id: UUID
     status: AttendanceStatus
+    method: AttendanceMethod = AttendanceMethod.MANUAL
 
 
 class AttendanceRosterItemOut(BaseModel):
