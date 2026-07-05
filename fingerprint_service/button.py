@@ -21,25 +21,40 @@ class HardwareButtonListener:
     def start(self, loop: asyncio.AbstractEventLoop):
         """Initialize the button listener. Fallback gracefully if not on Raspberry Pi."""
         self.loop = loop
+        self._running = True
         try:
             from gpiozero import Button
-            self.button = Button(settings.BUTTON_GPIO_PIN, bounce_time=0.5)
-            self.button.when_pressed = self._on_pressed
-            logger.info(f"Hardware button listener started on GPIO {settings.BUTTON_GPIO_PIN}")
+            # Initialize button without bounce_time or when_pressed to avoid spawning the background edge-detection thread
+            self.button = Button(settings.BUTTON_GPIO_PIN)
+            
+            # Start our own ultra-low-CPU async polling loop
+            self.loop.create_task(self._poll_button())
+            
+            logger.info(f"Hardware button listener started on GPIO {settings.BUTTON_GPIO_PIN} (Async Polling Mode)")
         except Exception as e:
             logger.error(f"Could not initialize hardware button (Mock mode or not on RPi): {e}")
 
     def stop(self):
+        self._running = False
         if self.button:
             self.button.close()
 
-    def _on_pressed(self):
-        """Synchronous callback triggered by gpiozero."""
-        if not self.loop:
-            return
-        
-        # Schedule the async flow on the main event loop
-        asyncio.run_coroutine_threadsafe(self._handle_button_press(), self.loop)
+    async def _poll_button(self):
+        """Ultra-low CPU polling loop to avoid lgpio/docker edge-detection bugs."""
+        while self._running:
+            try:
+                # Check if the button is physically held down
+                if self.button and self.button.is_pressed:
+                    # Run the button logic
+                    await self._handle_button_press()
+                    
+                    # Prevent rapid re-triggering (debounce) by sleeping for 2 seconds after a scan
+                    await asyncio.sleep(2.0)
+            except Exception as e:
+                logger.error(f"Button polling error: {e}")
+            
+            # Sleep for 100ms (10Hz poll rate) - guarantees virtually 0% CPU usage!
+            await asyncio.sleep(0.1)
 
     async def _handle_button_press(self):
         """Async handler to run fingerprint verification and mark attendance."""
