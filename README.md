@@ -97,66 +97,121 @@ By leveraging the Raspberry Pi 5, ClassOS handles computationally heavy AI infer
 
 **Infrastructure & Hardware**
 - **Database:** PostgreSQL 16
-- **Deployment:** Docker & Docker Compose
+- **Database:** PostgreSQL 16
+- **Reverse Proxy:** Nginx (Alpine) — HTTPS termination, static file serving, WebSocket proxying
+- **Containerization:** Docker Engine 26 & Docker Compose — one-command deployment
 - **Hardware:** Raspberry Pi 5
 - **Biometrics:** R307 Optical Fingerprint Sensor (via UART)
 
 ---
 
+## 🐳 Docker & Nginx Architecture
+
+ClassOS is **fully containerized**. Every service runs inside its own Docker container, orchestrated by a single `docker-compose.yml`. There are no host-level Python or Node.js dependencies to manage — just Docker.
+
+### Container Overview
+
+| Container | Image | Ports | Role |
+|-----------|-------|-------|------|
+| `classos-nginx` | `nginx:alpine` | 80, 443 | Reverse proxy, SSL termination, static file serving |
+| `classos-frontend` | Custom build (Node 20) | — | Compiles the React SPA into static files served by Nginx |
+| `classos-backend` | Custom build (Python 3.11) | 8000 | FastAPI server, AI engine, all hardware drivers |
+| `classos-db` | `postgres:16-alpine` | 5432 | PostgreSQL relational database |
+
+### How Nginx Works in ClassOS
+
+Nginx sits at the front of the entire stack as the **single entry point** for all HTTP/HTTPS traffic:
+
+- **HTTPS Termination:** All browser connections hit Nginx over port 443 with locally generated SSL certificates. Nginx decrypts the TLS and forwards plain HTTP internally.
+- **Static File Serving:** The React frontend is pre-built into static HTML/JS/CSS files at container build time. Nginx serves these directly from its filesystem — no Node.js process is running in production.
+- **API Proxying:** All requests to `/api/*` are reverse-proxied to the FastAPI backend container at `http://classos-backend:8000`.
+- **WebSocket Proxying:** Live attendance WebSocket connections (`/ws/*`) are proxied with `proxy_http_version 1.1` and `Upgrade` headers forwarded, enabling full-duplex real-time communication.
+- **MJPEG Stream Proxying:** The live camera stream (`/stream/*`) is proxied with `proxy_buffering off` to ensure frames are forwarded immediately without buffering delay.
+
+### Hardware Pass-Through in Docker
+
+Because the backend container needs to talk to physical hardware, the `docker-compose.yml` maps the Raspberry Pi's device files directly into the container:
+
+```yaml
+# docker-compose.yml — backend service (excerpt)
+devices:
+  - /dev/video42:/dev/video42   # Camera 0 (v4l2loopback)
+  - /dev/video43:/dev/video43   # Camera 1 (v4l2loopback)
+  - /dev/ttyAMA0:/dev/ttyAMA0   # R307 fingerprint sensor (UART)
+  - /dev/i2c-1:/dev/i2c-1       # I2C bus for LCD display
+  - /dev/gpiochip0:/dev/gpiochip0  # RP1 GPIO chip
+  - /dev/gpiochip4:/dev/gpiochip4  # Fallback GPIO chip
+privileged: true
+```
+
+---
+
 ## 🏗️ System Architecture
 
-ClassOS utilizes a heavily decoupled microservice-like structure packaged securely inside Docker containers.
+ClassOS utilizes a heavily decoupled microservice-like structure packaged securely inside Docker containers, fronted by an Nginx reverse proxy.
 
 ```mermaid
 graph TD
-    subgraph Frontend [React Frontend]
-        UI[User Dashboard]
+    subgraph Client ["🌐 Browser (Teacher / Student)"]
+        UI[React User Dashboard]
         WS_Client[WebSocket Client]
         Stream_Viewer[MJPEG Viewer]
     end
 
-    subgraph Backend [FastAPI Backend]
-        API[REST APIs]
-        WS_Mgr[WebSocket Manager]
-        Stream_Serv[Camera Streaming Engine]
+    subgraph Docker ["🐳 Docker Compose Stack"]
+        Nginx["nginx:alpine\nReverse Proxy :80/:443"]
+        
+        subgraph Backend ["FastAPI Backend Container :8000"]
+            API[REST APIs + JWT Auth]
+            WS_Mgr[WebSocket Manager]
+            Stream_Serv[Camera Streaming Engine]
+        end
+
+        subgraph AI_Engine ["Background AI Engine"]
+            Face[Face Recognition - dlib]
+            Yolo[YOLOv8 Head Counter]
+            Orchestrator[Attendance Orchestrator]
+        end
+
+        DB[("🐘 PostgreSQL 16\ncontainer")]
     end
 
-    subgraph AI_Engine [Background AI Engine]
-        Face[Face Recognition]
-        Yolo[YOLOv8 Head Counter]
-        Orchestrator[Attendance Orchestrator]
+    subgraph Hardware ["🔌 Raspberry Pi 5 — Hardware"]
+        Cam0[("📷 Camera 0\nEntry Door CSI")]
+        Cam1[("📷 Camera 1\nClassroom CSI")]
+        R307[("👆 R307 Fingerprint\nUART /dev/ttyAMA0")]
+        Button[("🔘 Push Button\nGPIO23")]
+        LCD[("📟 20x4 LCD\nI2C 0x27")]
     end
 
-    subgraph Hardware [Edge Hardware Integration]
-        Cam0[(Camera 0 - Entry)]
-        Cam1[(Camera 1 - Classroom)]
-        R307[(R307 Fingerprint)]
-        Button[(Push Button)]
-        LCD[(LCD Display)]
-    end
+    %% Client to Nginx (Entrypoint)
+    UI -- "HTTPS (Static Files)" --> Nginx
+    UI -- "Axios REST" --> Nginx
+    WS_Client -- "wss:// Real-time Events" --> Nginx
+    Stream_Viewer -- "HTTPS Chunked" --> Nginx
 
-    DB[(PostgreSQL)]
+    %% Nginx proxying to Backend
+    Nginx -- "/api/* proxy" --> API
+    Nginx -- "/ws/* WS proxy" --> WS_Mgr
+    Nginx -- "/stream/* no-buffer" --> Stream_Serv
 
-    %% Connections
-    UI -- Axios HTTP --> API
-    WS_Client -- Real-time Events --> WS_Mgr
-    Stream_Viewer -- HTTP Chunked --> Stream_Serv
-
+    %% Backend to DB
     API <--> DB
     Orchestrator <--> DB
 
-    Cam0 --> Stream_Serv
-    Cam1 --> Stream_Serv
-    Stream_Serv -- Async Frames --> Face
-    Stream_Serv -- Async Frames --> Yolo
+    %% Hardware to Backend
+    Cam0 -- "v4l2loopback /dev/video42" --> Stream_Serv
+    Cam1 -- "v4l2loopback /dev/video43" --> Stream_Serv
+    Stream_Serv -- "Async Frames" --> Face
+    Stream_Serv -- "Async Frames" --> Yolo
     
     Face --> Orchestrator
     Yolo --> Orchestrator
-    R307 -- UART Serial --> Orchestrator
-    Button -- GPIO --> Orchestrator
-    Orchestrator -- I2C --> LCD
+    R307 -- "UART Serial" --> Orchestrator
+    Button -- "GPIO lgpio" --> Orchestrator
+    Orchestrator -- "I2C smbus2" --> LCD
 
-    Orchestrator -- Broadcasts --> WS_Mgr
+    Orchestrator -- "WS Broadcasts" --> WS_Mgr
 ```
 
 ### 📂 Project Structure
@@ -409,13 +464,14 @@ npm run dev
 
 For deeper technical dives, please refer to the dedicated documentation files:
 
+- 👤 **[User Guide (User_Guide.md)](docs/User_Guide.md)** — Step-by-step instructions for Admins, Teachers, Students, and hardware interaction
 - 📊 **[Database ER Diagram (ER_DIAGRAM.md)](docs/ER_DIAGRAM.md)**
 - 📖 **[Workflow Guide (workflow_guide.md)](docs/workflow_guide.md)**
 - 🔌 **[Hardware Wiring Guide (hardware_wiring.md)](docs/hardware_wiring.md)**
 - 🚀 **[Deployment Guide (deployment_guide.md)](docs/deployment_guide.md)**
 - 📷 **[Face Enrollment & Camera Guide (face_enrollment_guide.md)](docs/face_enrollment_guide.md)**
 - 🧪 **[Testing Guide (testing_guide.md)](docs/testing_guide.md)**
-- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**  
+- 📡 **[API Reference (api_reference.md)](docs/api_reference.md)**
 - 🔐 **[Camera Permissions Guide (camera_permissions_guide.md)](docs/camera_permissions_guide.md)**
 
 ---
