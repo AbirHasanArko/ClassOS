@@ -1,7 +1,7 @@
 import client from './client';
 
-export const getStudents = async (skip = 0, limit = 50, search = '') => {
-  const response = await client.get('/students/', { params: { skip, limit, search } });
+export const getStudents = async (skip = 0, limit = 50, search = '', sortByRoll = false) => {
+  const response = await client.get('/students/', { params: { skip, limit, search, sort_by_roll: sortByRoll } });
   return response.data;
 };
 

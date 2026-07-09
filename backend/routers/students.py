@@ -69,6 +69,7 @@ async def get_students(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     search: str | None = None,
+    sort_by_roll: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -86,6 +87,13 @@ async def get_students(
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
+
+    # Apply sorting
+    if sort_by_roll:
+        query = query.order_by(Student.student_id.asc())
+    else:
+        # Default ordering if not sorting by roll (e.g. by creation date or name)
+        query = query.order_by(Student.last_name.asc(), Student.first_name.asc())
 
     # Get paginated results
     query = query.offset(skip).limit(limit)

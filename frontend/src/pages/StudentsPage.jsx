@@ -12,6 +12,7 @@ export const StudentsPage = () => {
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const [sortByRoll, setSortByRoll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newStudent, setNewStudent] = useState({
     student_id: '', first_name: '', last_name: '', email: ''
@@ -41,7 +42,7 @@ export const StudentsPage = () => {
 
   const fetchStudents = async () => {
     try {
-      const data = await getStudents(0, 50, search);
+      const data = await getStudents(0, 50, search, sortByRoll);
       setStudents(data.items || []);
       setTotal(data.total);
     } catch (err) {
@@ -51,7 +52,7 @@ export const StudentsPage = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, [search]);
+  }, [search, sortByRoll]);
 
   const handleAddStudent = async (e) => {
     e.preventDefault();
@@ -143,16 +144,24 @@ export const StudentsPage = () => {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search by name or ID..."
-          className="w-full h-10 pl-9 pr-4 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Filters */}
+      <div className="flex gap-4 items-center">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by name or ID..."
+            className="w-full h-10 pl-9 pr-4 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button 
+          variant={sortByRoll ? "default" : "outline"}
+          onClick={() => setSortByRoll(!sortByRoll)}
+        >
+          Sort by Roll
+        </Button>
       </div>
 
       {/* Student Table */}
